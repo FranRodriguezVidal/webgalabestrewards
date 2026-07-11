@@ -43,7 +43,7 @@ function PasswordScreen() {
 <style>
   {`
     html, body {
-      overflow: hidden;
+      //overflow: hidden;
       height: 100%;
     }
   `}

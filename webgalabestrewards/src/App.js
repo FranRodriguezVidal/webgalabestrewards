@@ -34,7 +34,7 @@ function PasswordScreen() {
     padding: "40px",
     textAlign: "center",
     position: "relative",
-    overflow: "hidden",
+    /*overflow: "hidden",*/
     /*overflowY: "hidden",*/
     minHeight: "100vh",
     background: "linear-gradient(135deg, #3f1dcb, #1a73e8, #ffffff, #ff66cc)",

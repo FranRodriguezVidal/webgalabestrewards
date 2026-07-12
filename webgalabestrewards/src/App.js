@@ -116,8 +116,8 @@ function PasswordScreen() {
 
   {/* ⭐ TU BLOQUE EXACTO, SIN CAMBIAR NADA ⭐ */}
   <div style={{ textAlign: "center" }}>
-    <h1 style={{ color: "gold", fontSize: "40px" }}>BEST REWARDS FUERTEVENTURA 2026</h1>
-    <h2>Introduce la contraseña para acceder</h2>
+    <h1 style={{ color: "gold", fontSize: "35px" }}>BEST REWARDS FUERTEVENTURA 2026</h1>
+    <h3>Introduce la contraseña para acceder</h3>
 
 <input
   type="password"

@@ -115,9 +115,8 @@ function PasswordScreen() {
   </style>
 
   {/* ⭐ TU BLOQUE EXACTO, SIN CAMBIAR NADA ⭐ */}
-  <div style={{ padding: "40px", textAlign: "center" }}>
-    <h1>BIENVENIDOS A LA GALA DE PREMIOS DE </h1>
-    <h1 style={{ color: "gold", fontSize: "48px" }}>BEST REWARDS FUERTEVENTURA 2026</h1>
+  <div style={{ textAlign: "center" }}>
+    <h1 style={{ color: "gold", fontSize: "40px" }}>BEST REWARDS FUERTEVENTURA 2026</h1>
     <h2>Introduce la contraseña para acceder</h2>
 
 <input
@@ -126,7 +125,7 @@ function PasswordScreen() {
   value={password}
   onChange={(e) => setPassword(e.target.value)}
   style={{
-    width: "80%",
+    width: "90%",
     padding: "15px",
     fontSize: "20px",
     marginTop: "25px",
@@ -134,7 +133,7 @@ function PasswordScreen() {
     border: "none",
     outline: "none",
     background: "rgba(255,255,255,0.2)",
-    color: "white",
+    color: "black",
     boxShadow: "0 0 10px rgba(255,255,255,0.4)",
     backdropFilter: "blur(10px)",
     transition: "all 0.3s ease",
@@ -159,7 +158,7 @@ function PasswordScreen() {
     border: "none",
     cursor: "pointer",
     background: "linear-gradient(135deg, gold, #ffdd55)",
-    color: "#3f1dcb",
+    color: "#000000",
     fontWeight: "bold",
     boxShadow: "0 0 20px gold",
     transition: "all 0.3s ease",

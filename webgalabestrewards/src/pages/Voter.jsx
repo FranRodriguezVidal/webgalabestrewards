@@ -142,7 +142,7 @@ export default function Voter() {
           <p>Escanea este QR para unirte a la gala:</p>
 
           <QRCodeCanvas
-            value="http://localhost:3000/join"
+            value="https://webgalabestrewards.pages.dev/join"
             size={200}
             bgColor="#ffffff"
             fgColor="#000000"

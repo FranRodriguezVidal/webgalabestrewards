@@ -278,109 +278,126 @@ function Home() {
         Selecciona tu modo
       </h1>
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "25px",
-          marginTop: "40px",
-          alignItems: "center",
-        }}
-      >
-        {/* BOTÓN BONITO */}
-        <button
-          onClick={() => navigate("/spectator")}
-          style={{
-            padding: "15px 40px",
-            fontSize: "22px",
-            borderRadius: "20px",
-            border: "none",
-            cursor: "pointer",
-            background: "linear-gradient(135deg, #ffffff, #dcdcdc)",
-            color: "#3f1dcb",
-            fontWeight: "bold",
-            boxShadow: "0 0 20px rgba(255,255,255,0.6)",
-            transition: "all 0.3s ease",
-            width: "260px",
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = "scale(1.05)";
-            e.target.style.boxShadow = "0 0 30px gold";
-            e.target.style.background = "linear-gradient(135deg, gold, #ffdd55)";
-            e.target.style.color = "#3f1dcb";
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = "scale(1)";
-            e.target.style.boxShadow = "0 0 20px rgba(255,255,255,0.6)";
-            e.target.style.background = "linear-gradient(135deg, #ffffff, #dcdcdc)";
-            e.target.style.color = "#3f1dcb";
-          }}
-        >
-          Espectador
-        </button>
+<div
+  style={{
+    display: "flex",
+    flexDirection: "row",
+    gap: "35px",
+    marginTop: "40px",
+    justifyContent: "center",
+    alignItems: "center",
+  }}
+>
+  {/* BOTÓN CUADRADO */}
+  <button
+    onClick={() => navigate("/spectator")}
+    style={{
+      padding: "35px",
+      fontSize: "24px",
+      borderRadius: "20px",
+      border: "none",
+      cursor: "pointer",
+      background: "linear-gradient(135deg, #ffffff, #dcdcdc)",
+      color: "#3f1dcb",
+      fontWeight: "bold",
+      boxShadow: "0 0 25px rgba(255,255,255,0.7)",
+      transition: "all 0.3s ease",
+      width: "220px",
+      height: "220px",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      textAlign: "center",
+    }}
+    onMouseEnter={(e) => {
+      e.target.style.transform = "scale(1.08)";
+      e.target.style.boxShadow = "0 0 40px gold";
+      e.target.style.background = "linear-gradient(135deg, gold, #ffdd55)";
+      e.target.style.color = "#3f1dcb";
+    }}
+    onMouseLeave={(e) => {
+      e.target.style.transform = "scale(1)";
+      e.target.style.boxShadow = "0 0 25px rgba(255,255,255,0.7)";
+      e.target.style.background = "linear-gradient(135deg, #ffffff, #dcdcdc)";
+      e.target.style.color = "#3f1dcb";
+    }}
+  >
+    PANTALLA<br />PRINCIPAL
+  </button>
 
-        <button
-          onClick={() => navigate("/voter")}
-          style={{
-            padding: "15px 40px",
-            fontSize: "22px",
-            borderRadius: "20px",
-            border: "none",
-            cursor: "pointer",
-            background: "linear-gradient(135deg, #ffffff, #dcdcdc)",
-            color: "#3f1dcb",
-            fontWeight: "bold",
-            boxShadow: "0 0 20px rgba(255,255,255,0.6)",
-            transition: "all 0.3s ease",
-            width: "260px",
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = "scale(1.05)";
-            e.target.style.boxShadow = "0 0 30px gold";
-            e.target.style.background = "linear-gradient(135deg, gold, #ffdd55)";
-            e.target.style.color = "#3f1dcb";
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = "scale(1)";
-            e.target.style.boxShadow = "0 0 20px rgba(255,255,255,0.6)";
-            e.target.style.background = "linear-gradient(135deg, #ffffff, #dcdcdc)";
-            e.target.style.color = "#3f1dcb";
-          }}
-        >
-          Votante / Presentador
-        </button>
+  <button
+    onClick={() => navigate("/voter")}
+    style={{
+      padding: "35px",
+      fontSize: "24px",
+      borderRadius: "20px",
+      border: "none",
+      cursor: "pointer",
+      background: "linear-gradient(135deg, #ffffff, #dcdcdc)",
+      color: "#3f1dcb",
+      fontWeight: "bold",
+      boxShadow: "0 0 25px rgba(255,255,255,0.7)",
+      transition: "all 0.3s ease",
+      width: "220px",
+      height: "220px",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      textAlign: "center",
+    }}
+    onMouseEnter={(e) => {
+      e.target.style.transform = "scale(1.08)";
+      e.target.style.boxShadow = "0 0 40px gold";
+      e.target.style.background = "linear-gradient(135deg, gold, #ffdd55)";
+      e.target.style.color = "#3f1dcb";
+    }}
+    onMouseLeave={(e) => {
+      e.target.style.transform = "scale(1)";
+      e.target.style.boxShadow = "0 0 25px rgba(255,255,255,0.7)";
+      e.target.style.background = "linear-gradient(135deg, #ffffff, #dcdcdc)";
+      e.target.style.color = "#3f1dcb";
+    }}
+  >
+    VOTANTE
+  </button>
 
-        <button
-          onClick={() => navigate("/admin")}
-          style={{
-            padding: "15px 40px",
-            fontSize: "22px",
-            borderRadius: "20px",
-            border: "none",
-            cursor: "pointer",
-            background: "linear-gradient(135deg, #ffffff, #dcdcdc)",
-            color: "#3f1dcb",
-            fontWeight: "bold",
-            boxShadow: "0 0 20px rgba(255,255,255,0.6)",
-            transition: "all 0.3s ease",
-            width: "260px",
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = "scale(1.05)";
-            e.target.style.boxShadow = "0 0 30px gold";
-            e.target.style.background = "linear-gradient(135deg, gold, #ffdd55)";
-            e.target.style.color = "#3f1dcb";
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = "scale(1)";
-            e.target.style.boxShadow = "0 0 20px rgba(255,255,255,0.6)";
-            e.target.style.background = "linear-gradient(135deg, #ffffff, #dcdcdc)";
-            e.target.style.color = "#3f1dcb";
-          }}
-        >
-          Admin
-        </button>
-      </div>
+  <button
+    onClick={() => navigate("/admin")}
+    style={{
+      padding: "35px",
+      fontSize: "24px",
+      borderRadius: "20px",
+      border: "none",
+      cursor: "pointer",
+      background: "linear-gradient(135deg, #ffffff, #dcdcdc)",
+      color: "#3f1dcb",
+      fontWeight: "bold",
+      boxShadow: "0 0 25px rgba(255,255,255,0.7)",
+      transition: "all 0.3s ease",
+      width: "220px",
+      height: "220px",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      textAlign: "center",
+    }}
+    onMouseEnter={(e) => {
+      e.target.style.transform = "scale(1.08)";
+      e.target.style.boxShadow = "0 0 40px gold";
+      e.target.style.background = "linear-gradient(135deg, gold, #ffdd55)";
+      e.target.style.color = "#3f1dcb";
+    }}
+    onMouseLeave={(e) => {
+      e.target.style.transform = "scale(1)";
+      e.target.style.boxShadow = "0 0 25px rgba(255,255,255,0.7)";
+      e.target.style.background = "linear-gradient(135deg, #ffffff, #dcdcdc)";
+      e.target.style.color = "#3f1dcb";
+    }}
+  >
+    ADMIN
+  </button>
+</div>
+
     </div>
   );
 }

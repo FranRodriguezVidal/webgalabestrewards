@@ -10,12 +10,16 @@ import {
   deleteDoc
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
+import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
+
 
 export default function Voter() {
   const [userId, setUserId] = useState(null);
   const [galaState, setGalaState] = useState(null);
   const [nominees, setNominees] = useState([]);
   const [hasVoted, setHasVoted] = useState(false);
+  const navigate = useNavigate();
+
 
   // Detectar usuario actual
   useEffect(() => {
@@ -114,6 +118,39 @@ export default function Voter() {
         position: "relative"
       }}
     >
+      <style>
+        {`
+  @keyframes qrGlow {
+    0% { filter: drop-shadow(0 0 5px rgba(255,255,255,0.4)); }
+    50% { filter: drop-shadow(0 0 15px rgba(255,255,255,0.9)); }
+    100% { filter: drop-shadow(0 0 5px rgba(255,255,255,0.4)); }
+  }
+`}
+      </style>
+      <style>
+        {`
+  @keyframes breatheBtn {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes fadePop {
+    0% { opacity: 0; transform: scale(0.7); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+`}
+      </style>
+            <style>
+        {`
+    html, body {
+      overflow: hidden;
+      height: 100%;
+    }
+  `}
+      </style>
+
+
       {/* BOTÓN SALIR */}
       {alreadyJoined && (
         <button
@@ -137,18 +174,88 @@ export default function Voter() {
 
       {/* QR SOLO SI NO ESTÁ REGISTRADO */}
       {!alreadyJoined && (
-        <div style={{ marginTop: "40px" }}>
-          <h2>Unirse como votante</h2>
-          <p>Escanea este QR para unirte a la gala:</p>
+        <div
+          style={{
+            marginTop: "40px",
+            textAlign: "center",
+            animation: "fadeIn 1s ease",
+            width: "100%",
+          }}
+        >
+          <h2
+            style={{
+              color: "white",
+              textShadow: "0 0 10px white",
+              marginBottom: "10px",
+            }}
+          >
+            ¡Únete como votante y disfruta de la gala!
+          </h2>
 
-          <QRCodeCanvas
-            value="https://webgalabestrewards.pages.dev/join"
-            size={200}
-            bgColor="#ffffff"
-            fgColor="#000000"
-          />
+          {/* CONTENEDOR DEL QR */}
+          <div
+            style={{
+              marginTop: "20px",
+              padding: "20px",
+              borderRadius: "20px",
+              animation: "qrGlow 3s infinite ease-in-out",
+              display: "flex",
+              justifyContent: "center",
+            }}
+          >
+            <QRCodeCanvas
+              value="https://webgalabestrewards.pages.dev/join"
+              size={420}
+              bgColor="transparent"
+              fgColor="#e310eb"
+              imageSettings={{
+                src: "/qr.png",
+                height: 150,
+                width: 150,
+                excavate: true,
+              }}
+            />
+          </div>
+
+          {/* BOTÓN DEBAJO DEL QR */}
+          <button
+            onClick={() => navigate("/spectator")}
+            style={{
+              marginTop: "30px",
+              padding: "14px 32px",
+              background: "rgba(255,255,255,0.15)",
+              border: "2px solid rgba(255,255,255,0.4)",
+              borderRadius: "999px",
+              color: "white",
+              cursor: "pointer",
+              backdropFilter: "blur(8px)",
+              fontSize: "20px",
+              fontWeight: "bold",
+              letterSpacing: "1px",
+              boxShadow: "0 0 15px rgba(255,255,255,0.6)",
+              animation: "breatheBtn 3s infinite ease-in-out, fadePop 0.6s ease",
+              transition: "all 0.3s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = "scale(1.12)";
+              e.target.style.background = "rgba(255,215,0,0.35)";
+              e.target.style.boxShadow = "0 0 30px gold";
+              e.target.style.border = "2px solid gold";
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = "scale(1)";
+              e.target.style.background = "rgba(255,255,255,0.15)";
+              e.target.style.boxShadow = "0 0 15px rgba(255,255,255,0.6)";
+              e.target.style.border = "2px solid rgba(255,255,255,0.4)";
+            }}
+          >
+            Ir a espectador
+          </button>
         </div>
       )}
+
+
+
 
       {/* ESPERANDO AL ADMIN */}
       {alreadyJoined && galaState.stage !== "voting" && (

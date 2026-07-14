@@ -29,71 +29,71 @@ function PasswordScreen() {
   };
 
   return (
-<div
-  style={{
-    padding: "40px",
-    textAlign: "center",
-    position: "relative",
-    overflow: "hidden",
-    overflowY: "hidden",
-    minHeight: "100vh",
-    background: "linear-gradient(135deg, #3f1dcb, #1a73e8, #ffffff, #ff66cc)",
-  }}
->
-<style>
-  {`
+    <div
+      style={{
+        padding: "40px",
+        textAlign: "center",
+        position: "relative",
+        overflow: "hidden",
+        overflowY: "hidden",
+        minHeight: "100vh",
+        background: "linear-gradient(135deg, #3f1dcb, #1a73e8, #ffffff, #ff66cc)",
+      }}
+    >
+      <style>
+        {`
     html, body {
       overflow: hidden;
       height: 100%;
     }
   `}
-</style>
+      </style>
 
-  {/* CÍRCULOS ANIMADOS */}
-  <div
-    style={{
-      position: "absolute",
-      top: "10%",
-      left: "15%",
-      width: "150px",
-      height: "150px",
-      background: "rgba(255,255,255,0.25)",
-      borderRadius: "50%",
-      animation: "float1 6s infinite ease-in-out",
-      filter: "blur(4px)",
-    }}
-  ></div>
+      {/* CÍRCULOS ANIMADOS */}
+      <div
+        style={{
+          position: "absolute",
+          top: "10%",
+          left: "15%",
+          width: "150px",
+          height: "150px",
+          background: "rgba(255,255,255,0.25)",
+          borderRadius: "50%",
+          animation: "float1 6s infinite ease-in-out",
+          filter: "blur(4px)",
+        }}
+      ></div>
 
-  <div
-    style={{
-      position: "absolute",
-      top: "60%",
-      left: "70%",
-      width: "200px",
-      height: "200px",
-      background: "rgba(138,43,226,0.35)",
-      borderRadius: "50%",
-      animation: "float2 8s infinite ease-in-out",
-      filter: "blur(6px)",
-    }}
-  ></div>
+      <div
+        style={{
+          position: "absolute",
+          top: "60%",
+          left: "70%",
+          width: "200px",
+          height: "200px",
+          background: "rgba(138,43,226,0.35)",
+          borderRadius: "50%",
+          animation: "float2 8s infinite ease-in-out",
+          filter: "blur(6px)",
+        }}
+      ></div>
 
-  <div
-    style={{
-      position: "absolute",
-      top: "30%",
-      left: "50%",
-      width: "120px",
-      height: "120px",
-      background: "rgba(0,150,255,0.30)",
-      borderRadius: "50%",
-      animation: "float3 10s infinite ease-in-out",
-      filter: "blur(5px)",
-    }}
-  ></div>
+      <div
+        style={{
+          position: "absolute",
+          top: "30%",
+          left: "50%",
+          width: "120px",
+          height: "120px",
+          background: "rgba(0,150,255,0.30)",
+          borderRadius: "50%",
+          animation: "float3 10s infinite ease-in-out",
+          filter: "blur(5px)",
+        }}
+      ></div>
 
-  <style>
-    {`
+      <style>
+        {`
       @keyframes float1 {
         0% { transform: translateY(0px) translateX(0px); }
         50% { transform: translateY(-40px) translateX(20px); }
@@ -112,71 +112,71 @@ function PasswordScreen() {
         100% { transform: translateY(0px) translateX(0px); }
       }
     `}
-  </style>
+      </style>
 
-  {/* ⭐ TU BLOQUE EXACTO, SIN CAMBIAR NADA ⭐ */}
-  <div style={{ textAlign: "center" }}>
-    <h1 style={{ color: "gold", fontSize: "35px" }}>BEST REWARDS FUERTEVENTURA 2026</h1>
-    <h3>Introduce la contraseña para acceder</h3>
+      {/* ⭐ TU BLOQUE EXACTO, SIN CAMBIAR NADA ⭐ */}
+      <div style={{ textAlign: "center" }}>
+        <h1 style={{ color: "gold", fontSize: "35px" }}>BEST REWARDS FUERTEVENTURA 2026</h1>
+        <h3>Introduce la contraseña para acceder</h3>
 
-<input
-  type="password"
-  placeholder="Introduce la contraseña"
-  value={password}
-  onChange={(e) => setPassword(e.target.value)}
-  style={{
-    width: "90%",
-    padding: "15px",
-    fontSize: "20px",
-    marginTop: "25px",
-    borderRadius: "15px",
-    border: "none",
-    outline: "none",
-    background: "rgba(255,255,255,0.2)",
-    color: "black",
-    boxShadow: "0 0 10px rgba(255,255,255,0.4)",
-    backdropFilter: "blur(10px)",
-    transition: "all 0.3s ease",
-  }}
-  onFocus={(e) => {
-    e.target.style.boxShadow = "0 0 20px gold";
-    e.target.style.background = "rgba(255,255,255,0.3)";
-  }}
-  onBlur={(e) => {
-    e.target.style.boxShadow = "0 0 10px rgba(255,255,255,0.4)";
-    e.target.style.background = "rgba(255,255,255,0.2)";
-  }}
-/>
+        <input
+          type="password"
+          placeholder="Introduce la contraseña"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          style={{
+            width: "90%",
+            padding: "15px",
+            fontSize: "20px",
+            marginTop: "25px",
+            borderRadius: "15px",
+            border: "none",
+            outline: "none",
+            background: "rgba(255,255,255,0.2)",
+            color: "black",
+            boxShadow: "0 0 10px rgba(255,255,255,0.4)",
+            backdropFilter: "blur(10px)",
+            transition: "all 0.3s ease",
+          }}
+          onFocus={(e) => {
+            e.target.style.boxShadow = "0 0 20px gold";
+            e.target.style.background = "rgba(255,255,255,0.3)";
+          }}
+          onBlur={(e) => {
+            e.target.style.boxShadow = "0 0 10px rgba(255,255,255,0.4)";
+            e.target.style.background = "rgba(255,255,255,0.2)";
+          }}
+        />
 
-<button
-  onClick={submitPassword}
-  style={{
-    padding: "15px 40px",
-    fontSize: "22px",
-    marginTop: "30px",
-    borderRadius: "20px",
-    border: "none",
-    cursor: "pointer",
-    background: "linear-gradient(135deg, gold, #ffdd55)",
-    color: "#000000",
-    fontWeight: "bold",
-    boxShadow: "0 0 20px gold",
-    transition: "all 0.3s ease",
-  }}
-  onMouseEnter={(e) => {
-    e.target.style.transform = "scale(1.05)";
-    e.target.style.boxShadow = "0 0 30px gold";
-  }}
-  onMouseLeave={(e) => {
-    e.target.style.transform = "scale(1)";
-    e.target.style.boxShadow = "0 0 20px gold";
-  }}
->
-  Entrar
-</button>
+        <button
+          onClick={submitPassword}
+          style={{
+            padding: "15px 40px",
+            fontSize: "22px",
+            marginTop: "30px",
+            borderRadius: "20px",
+            border: "none",
+            cursor: "pointer",
+            background: "linear-gradient(135deg, gold, #ffdd55)",
+            color: "#000000",
+            fontWeight: "bold",
+            boxShadow: "0 0 20px gold",
+            transition: "all 0.3s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = "scale(1.05)";
+            e.target.style.boxShadow = "0 0 30px gold";
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = "scale(1)";
+            e.target.style.boxShadow = "0 0 20px gold";
+          }}
+        >
+          Entrar
+        </button>
 
-  </div>
-</div>
+      </div>
+    </div>
 
   );
 }
@@ -266,6 +266,36 @@ function Home() {
           }
         `}
       </style>
+      <style>
+        {`
+    html, body {
+      overflow: hidden;
+      height: 100%;
+    }
+  `}
+      </style>
+      <style>
+{`
+  @keyframes pulseGlow {
+    0% { box-shadow: 0 0 20px rgba(255,255,255,0.4); }
+    50% { box-shadow: 0 0 35px rgba(255,255,255,0.9); }
+    100% { box-shadow: 0 0 20px rgba(255,255,255,0.4); }
+  }
+
+  @keyframes breathe {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes popIn {
+    0% { opacity: 0; transform: scale(0.6); }
+    60% { opacity: 1; transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+`}
+</style>
+
 
       <h1
         style={{
@@ -278,48 +308,47 @@ function Home() {
         Selecciona tu modo
       </h1>
 
-<div
+      <div
   style={{
     display: "flex",
     flexDirection: "row",
-    gap: "35px",
+    gap: "45px",
     marginTop: "40px",
     justifyContent: "center",
     alignItems: "center",
   }}
 >
-  {/* BOTÓN CUADRADO */}
+  {/* BOTÓN ANIMADO */}
   <button
     onClick={() => navigate("/spectator")}
     style={{
       padding: "35px",
-      fontSize: "24px",
-      borderRadius: "20px",
+      fontSize: "26px",
+      borderRadius: "22px",
       border: "none",
       cursor: "pointer",
-      background: "linear-gradient(135deg, #ffffff, #dcdcdc)",
+      background: "linear-gradient(135deg, #ffffff, #e8e8e8)",
       color: "#3f1dcb",
       fontWeight: "bold",
-      boxShadow: "0 0 25px rgba(255,255,255,0.7)",
-      transition: "all 0.3s ease",
-      width: "220px",
-      height: "220px",
+      width: "230px",
+      height: "230px",
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
       textAlign: "center",
+
+      animation: "pulseGlow 3s infinite ease-in-out, breathe 4s infinite ease-in-out, popIn 0.6s ease",
+      transition: "all 0.3s ease",
     }}
     onMouseEnter={(e) => {
-      e.target.style.transform = "scale(1.08)";
-      e.target.style.boxShadow = "0 0 40px gold";
+      e.target.style.transform = "scale(1.12)";
+      e.target.style.boxShadow = "0 0 45px gold";
       e.target.style.background = "linear-gradient(135deg, gold, #ffdd55)";
-      e.target.style.color = "#3f1dcb";
     }}
     onMouseLeave={(e) => {
       e.target.style.transform = "scale(1)";
       e.target.style.boxShadow = "0 0 25px rgba(255,255,255,0.7)";
-      e.target.style.background = "linear-gradient(135deg, #ffffff, #dcdcdc)";
-      e.target.style.color = "#3f1dcb";
+      e.target.style.background = "linear-gradient(135deg, #ffffff, #e8e8e8)";
     }}
   >
     PANTALLA<br />PRINCIPAL
@@ -329,33 +358,32 @@ function Home() {
     onClick={() => navigate("/voter")}
     style={{
       padding: "35px",
-      fontSize: "24px",
-      borderRadius: "20px",
+      fontSize: "26px",
+      borderRadius: "22px",
       border: "none",
       cursor: "pointer",
-      background: "linear-gradient(135deg, #ffffff, #dcdcdc)",
+      background: "linear-gradient(135deg, #ffffff, #e8e8e8)",
       color: "#3f1dcb",
       fontWeight: "bold",
-      boxShadow: "0 0 25px rgba(255,255,255,0.7)",
-      transition: "all 0.3s ease",
-      width: "220px",
-      height: "220px",
+      width: "230px",
+      height: "230px",
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
       textAlign: "center",
+
+      animation: "pulseGlow 3s infinite ease-in-out, breathe 4s infinite ease-in-out, popIn 0.8s ease",
+      transition: "all 0.3s ease",
     }}
     onMouseEnter={(e) => {
-      e.target.style.transform = "scale(1.08)";
-      e.target.style.boxShadow = "0 0 40px gold";
+      e.target.style.transform = "scale(1.12)";
+      e.target.style.boxShadow = "0 0 45px gold";
       e.target.style.background = "linear-gradient(135deg, gold, #ffdd55)";
-      e.target.style.color = "#3f1dcb";
     }}
     onMouseLeave={(e) => {
       e.target.style.transform = "scale(1)";
       e.target.style.boxShadow = "0 0 25px rgba(255,255,255,0.7)";
-      e.target.style.background = "linear-gradient(135deg, #ffffff, #dcdcdc)";
-      e.target.style.color = "#3f1dcb";
+      e.target.style.background = "linear-gradient(135deg, #ffffff, #e8e8e8)";
     }}
   >
     VOTANTE
@@ -365,38 +393,38 @@ function Home() {
     onClick={() => navigate("/admin")}
     style={{
       padding: "35px",
-      fontSize: "24px",
-      borderRadius: "20px",
+      fontSize: "26px",
+      borderRadius: "22px",
       border: "none",
       cursor: "pointer",
-      background: "linear-gradient(135deg, #ffffff, #dcdcdc)",
+      background: "linear-gradient(135deg, #ffffff, #e8e8e8)",
       color: "#3f1dcb",
       fontWeight: "bold",
-      boxShadow: "0 0 25px rgba(255,255,255,0.7)",
-      transition: "all 0.3s ease",
-      width: "220px",
-      height: "220px",
+      width: "230px",
+      height: "230px",
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
       textAlign: "center",
+
+      animation: "pulseGlow 3s infinite ease-in-out, breathe 4s infinite ease-in-out, popIn 1s ease",
+      transition: "all 0.3s ease",
     }}
     onMouseEnter={(e) => {
-      e.target.style.transform = "scale(1.08)";
-      e.target.style.boxShadow = "0 0 40px gold";
+      e.target.style.transform = "scale(1.12)";
+      e.target.style.boxShadow = "0 0 45px gold";
       e.target.style.background = "linear-gradient(135deg, gold, #ffdd55)";
-      e.target.style.color = "#3f1dcb";
     }}
     onMouseLeave={(e) => {
       e.target.style.transform = "scale(1)";
       e.target.style.boxShadow = "0 0 25px rgba(255,255,255,0.7)";
-      e.target.style.background = "linear-gradient(135deg, #ffffff, #dcdcdc)";
-      e.target.style.color = "#3f1dcb";
+      e.target.style.background = "linear-gradient(135deg, #ffffff, #e8e8e8)";
     }}
   >
     ADMIN
   </button>
 </div>
+
 
     </div>
   );

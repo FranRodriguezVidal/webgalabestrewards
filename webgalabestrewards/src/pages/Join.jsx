@@ -62,6 +62,7 @@ export default function Join() {
   };
 
   return (
+    
     <div
       style={{
         padding: "20px",
@@ -75,6 +76,14 @@ export default function Join() {
         alignItems: "center",
       }}
     >
+            <style>
+        {`
+    html, body {
+      overflow: hidden;
+      height: 100%;
+    }
+  `}
+      </style>
       {/* Botón salir arriba derecha */}
       <button
         onClick={exitPage}

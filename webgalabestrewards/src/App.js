@@ -19,7 +19,8 @@ function PasswordScreen() {
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
-  const submitPassword = () => {
+  const submitPassword = (e) => {
+    e.preventDefault();
     if (password === PASSWORD) {
       sessionStorage.setItem("auth", "true");
       navigate("/home");
@@ -119,61 +120,73 @@ function PasswordScreen() {
         <h1 style={{ color: "gold", fontSize: "35px" }}>BEST REWARDS FUERTEVENTURA 2026</h1>
         <h3>Introduce la contraseña para acceder</h3>
 
-        <input
-          type="password"
-          placeholder="Introduce la contraseña"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
+        <form
+          onSubmit={submitPassword}
           style={{
-            width: "90%",
-            padding: "15px",
-            fontSize: "20px",
-            marginTop: "25px",
-            borderRadius: "15px",
-            border: "none",
-            outline: "none",
-            background: "rgba(255,255,255,0.2)",
-            color: "black",
-            boxShadow: "0 0 10px rgba(255,255,255,0.4)",
-            backdropFilter: "blur(10px)",
-            transition: "all 0.3s ease",
-          }}
-          onFocus={(e) => {
-            e.target.style.boxShadow = "0 0 20px gold";
-            e.target.style.background = "rgba(255,255,255,0.3)";
-          }}
-          onBlur={(e) => {
-            e.target.style.boxShadow = "0 0 10px rgba(255,255,255,0.4)";
-            e.target.style.background = "rgba(255,255,255,0.2)";
-          }}
-        />
-
-        <button
-          onClick={submitPassword}
-          style={{
-            padding: "15px 40px",
-            fontSize: "22px",
-            marginTop: "30px",
-            borderRadius: "20px",
-            border: "none",
-            cursor: "pointer",
-            background: "linear-gradient(135deg, gold, #ffdd55)",
-            color: "#000000",
-            fontWeight: "bold",
-            boxShadow: "0 0 20px gold",
-            transition: "all 0.3s ease",
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = "scale(1.05)";
-            e.target.style.boxShadow = "0 0 30px gold";
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = "scale(1)";
-            e.target.style.boxShadow = "0 0 20px gold";
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            maxWidth: "420px",
+            margin: "0 auto",
           }}
         >
-          Entrar
-        </button>
+          <input
+            type="password"
+            placeholder="Introduce la contraseña"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={{
+              width: "90%",
+              padding: "15px",
+              fontSize: "20px",
+              marginTop: "25px",
+              borderRadius: "15px",
+              border: "none",
+              outline: "none",
+              background: "rgba(255,255,255,0.2)",
+              color: "black",
+              boxShadow: "0 0 10px rgba(255,255,255,0.4)",
+              backdropFilter: "blur(10px)",
+              transition: "all 0.3s ease",
+            }}
+            onFocus={(e) => {
+              e.target.style.boxShadow = "0 0 20px gold";
+              e.target.style.background = "rgba(255,255,255,0.3)";
+            }}
+            onBlur={(e) => {
+              e.target.style.boxShadow = "0 0 10px rgba(255,255,255,0.4)";
+              e.target.style.background = "rgba(255,255,255,0.2)";
+            }}
+          />
+
+          <button
+            type="submit"
+            style={{
+              padding: "15px 40px",
+              fontSize: "22px",
+              marginTop: "30px",
+              borderRadius: "20px",
+              border: "none",
+              cursor: "pointer",
+              background: "linear-gradient(135deg, gold, #ffdd55)",
+              color: "#000000",
+              fontWeight: "bold",
+              boxShadow: "0 0 20px gold",
+              transition: "all 0.3s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = "scale(1.05)";
+              e.target.style.boxShadow = "0 0 30px gold";
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = "scale(1)";
+              e.target.style.boxShadow = "0 0 20px gold";
+            }}
+          >
+            Entrar
+          </button>
+        </form>
 
       </div>
     </div>

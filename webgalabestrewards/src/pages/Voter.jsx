@@ -10,7 +10,7 @@ import {
   deleteDoc
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
-import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 
 export default function Voter() {

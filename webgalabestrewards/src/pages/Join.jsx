@@ -21,12 +21,12 @@ export default function Join() {
     const formData = new FormData();
     formData.append("file", file);
 
-    const res = await fetch("http://localhost:3001/upload", {
+    const response = await fetch("https://gala-backend.franrvguijo.workers.dev/upload", {
       method: "POST",
-      body: formData,
+      body: formData
     });
 
-    const data = await res.json();
+    const data = await response.json();
     return data.fileName;
   };
 
@@ -365,11 +365,11 @@ export default function Join() {
             <p style={{ fontSize: "15px", lineHeight: "22px" }}>
               La foto de perfil se usa para mostrar:
               <br />
-              ⭐ Los nominados  
+              ⭐ Los nominados
               <br />
-              ⭐ Los usuarios conectados  
+              ⭐ Los usuarios conectados
               <br />
-              ⭐ Y si ganas… ¡tu foto aparecerá como GANADOR!  
+              ⭐ Y si ganas… ¡tu foto aparecerá como GANADOR!
               <br />
               <br />
               Por eso es importante que sea una foto clara, bonita y bien iluminada.

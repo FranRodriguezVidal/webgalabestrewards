@@ -58,6 +58,7 @@ export default function Join() {
     });
 
     sessionStorage.setItem("voterId", user.uid);
+    sessionStorage.setItem("voterAuth", "true");
     navigate("/voter");
   };
 

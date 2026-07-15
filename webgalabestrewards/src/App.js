@@ -9,8 +9,14 @@ import Voter from "./pages/Voter";
 const PASSWORD = "FUERTEVENTURA2026";
 
 // 🔐 Componente de protección
-function ProtectedRoute({ children }) {
+function ProtectedRoute({ children, allowVoter }) {
   const isAuth = sessionStorage.getItem("auth") === "true";
+  const isVoterAuth = sessionStorage.getItem("voterAuth") === "true";
+
+  if (allowVoter) {
+    return isAuth || isVoterAuth ? children : <h1 style={{ textAlign: "center" }}>Acceso denegado</h1>;
+  }
+
   return isAuth ? children : <h1 style={{ textAlign: "center" }}>Acceso denegado</h1>;
 }
 
@@ -461,20 +467,13 @@ function App() {
           }
         />
 
-        {/* Rutas protegidas */}
-        <Route
-          path="/spectator"
-          element={
-            <ProtectedRoute>
-              <Spectator />
-            </ProtectedRoute>
-          }
-        />
+        {/* Página de espectador pública */}
+        <Route path="/spectator" element={<Spectator />} />
 
         <Route
           path="/voter"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowVoter>
               <Voter />
             </ProtectedRoute>
           }

@@ -18,26 +18,70 @@ export default function Join() {
 
   const navigate = useNavigate();
 
+  const compressImageForUpload = async (file) => {
+    if (!file || typeof file.name !== "string") {
+      throw new Error("El archivo seleccionado no es válido.");
+    }
+
+    if (!file.type.startsWith("image/")) {
+      return file;
+    }
+
+    if (file.size < 1500000 && file.type !== "image/heic") {
+      return file;
+    }
+
+    const imageBitmap = await createImageBitmap(file);
+    const maxDimension = 1200;
+    let { width, height } = imageBitmap;
+
+    if (width > maxDimension || height > maxDimension) {
+      if (width > height) {
+        height = Math.round((height * maxDimension) / width);
+        width = maxDimension;
+      } else {
+        width = Math.round((width * maxDimension) / height);
+        height = maxDimension;
+      }
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(imageBitmap, 0, 0, width, height);
+
+    const blob = await new Promise((resolve) => {
+      canvas.toBlob(resolve, "image/jpeg", 0.75);
+    });
+
+    if (!blob) {
+      return file;
+    }
+
+    const newName = file.name.replace(/\.[^/.]+$/, ".jpg");
+    return new File([blob], newName, { type: "image/jpeg" });
+  };
+
   const uploadLocal = async (file) => {
     if (!file || typeof file.name !== "string") {
       throw new Error("El archivo seleccionado no es válido.");
     }
 
+    const uploadFile = await compressImageForUpload(file);
+
     console.log("subiendo archivo", {
-      name: file.name,
-      type: file.type,
-      size: file.size,
+      name: uploadFile.name,
+      type: uploadFile.type,
+      size: uploadFile.size,
     });
 
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", uploadFile, uploadFile.name);
 
     const response = await fetch("https://gala-backend.franrvguijo.workers.dev/upload", {
       method: "POST",
       mode: "cors",
-      headers: {
-        Accept: "application/json",
-      },
       body: formData,
     });
 

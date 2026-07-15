@@ -1,7 +1,19 @@
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type"
+  "Access-Control-Allow-Headers": "Content-Type, Accept"
+};
+
+const base64EncodeArrayBuffer = (arrayBuffer) => {
+  const bytes = new Uint8Array(arrayBuffer);
+  let binary = "";
+  const chunkSize = 0x8000;
+
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+
+  return btoa(binary);
 };
 
 export default {
@@ -36,16 +48,18 @@ export default {
         });
       }
 
-      // Convertir a Base64
+      // Convertir a Base64 de forma segura para archivos grandes
       const arrayBuffer = await file.arrayBuffer();
-      const base64 = btoa(
-        String.fromCharCode(...new Uint8Array(arrayBuffer))
-      );
+      const base64 = base64EncodeArrayBuffer(arrayBuffer);
+      const mimeType = file.type || "application/octet-stream";
 
       const fileName = Date.now() + "-" + file.name;
 
-      // Guardar en KV
-      await env.IMAGES.put(fileName, base64);
+      // Guardar en KV como JSON para preservar el tipo MIME
+      await env.IMAGES.put(fileName, JSON.stringify({
+        mime: mimeType,
+        content: base64,
+      }));
 
       return new Response(JSON.stringify({ fileName }), {
         headers: {
@@ -58,22 +72,32 @@ export default {
     // Endpoint para servir imágenes
     if (request.method === "GET" && url.pathname.startsWith("/image/")) {
       const fileName = url.pathname.replace("/image/", "");
-      const base64 = await env.IMAGES.get(fileName);
+      const stored = await env.IMAGES.get(fileName);
 
-      if (!base64) {
+      if (!stored) {
         return new Response("Imagen no encontrada", {
           status: 404,
           headers: CORS_HEADERS
         });
       }
 
-      // Convertir Base64 a binario
-      const binary = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+      let parsed;
+      try {
+        parsed = JSON.parse(stored);
+      } catch (err) {
+        return new Response("Formato de imagen inválido", {
+          status: 500,
+          headers: CORS_HEADERS
+        });
+      }
+
+      const { mime, content } = parsed;
+      const binary = Uint8Array.from(atob(content), c => c.charCodeAt(0));
 
       return new Response(binary, {
         headers: {
           ...CORS_HEADERS,
-          "Content-Type": "image/jpeg"
+          "Content-Type": mime
         }
       });
     }

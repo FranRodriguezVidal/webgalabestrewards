@@ -7,7 +7,8 @@ import {
   doc,
   updateDoc,
   getDoc,
-  deleteDoc
+  deleteDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
@@ -27,6 +28,57 @@ export default function Voter() {
       if (user) setUserId(user.uid);
     });
   }, []);
+
+  // Actualizar presencia del votante según visibilidad de la pestaña
+  useEffect(() => {
+    if (!userId) return;
+
+    const userRef = doc(db, "users", userId);
+
+    const setConnected = async (connected) => {
+      try {
+        await updateDoc(userRef, {
+          connected,
+          lastSeen: serverTimestamp(),
+        });
+      } catch (error) {
+        console.warn("Error actualizando estado de conexión:", error);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      setConnected(!document.hidden);
+    };
+
+    const handleWindowBlur = () => {
+      if (document.hidden) {
+        setConnected(false);
+      }
+    };
+
+    const handleWindowFocus = () => {
+      setConnected(true);
+    };
+
+    const heartbeatInterval = setInterval(() => {
+      if (!document.hidden) {
+        setConnected(true);
+      }
+    }, 8000);
+
+    setConnected(!document.hidden);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("blur", handleWindowBlur);
+    window.addEventListener("focus", handleWindowFocus);
+
+    return () => {
+      clearInterval(heartbeatInterval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("blur", handleWindowBlur);
+      window.removeEventListener("focus", handleWindowFocus);
+      setConnected(false);
+    };
+  }, [userId]);
 
   // Cargar estado global de la gala
   useEffect(() => {

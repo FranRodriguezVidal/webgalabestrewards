@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { auth, db } from "../firebase";
 import { signInAnonymously } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 
 export default function Join() {
@@ -186,6 +186,7 @@ export default function Join() {
         winnerPhoto: winnerPhotoName,
         role: "voter",
         connected: true,
+        lastSeen: serverTimestamp(),
         votes: 0,
       });
 

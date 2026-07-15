@@ -37,6 +37,14 @@ export default function Admin() {
     });
   };
 
+  // Iniciar gala
+  const startGala = async () => {
+    await updateDoc(doc(db, "galaState", "state"), {
+      stage: "started",
+      showPresenter: false
+    });
+  };
+
   // Abrir votaciones
   const openVoting = async () => {
     await updateDoc(doc(db, "galaState", "state"), {
@@ -77,8 +85,9 @@ export default function Admin() {
 
       <hr />
 
-      <h2>Control de votaciones</h2>
-      <button onClick={openVoting}>Abrir votaciones</button>
+      <h2>Control principal</h2>
+      <button onClick={startGala} style={{ marginRight: "12px" }}>Iniciar gala</button>
+      <button onClick={openVoting} style={{ marginRight: "12px" }}>Abrir votaciones</button>
       <button onClick={closeVoting}>Cerrar votaciones</button>
 
       <hr />

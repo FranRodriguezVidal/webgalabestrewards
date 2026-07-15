@@ -12,6 +12,9 @@ export default function Join() {
   const [error, setError] = useState("");
   const [gender, setGender] = useState("");
 
+  // MODAL INFO FOTO PERFIL
+  const [showInfoProfile, setShowInfoProfile] = useState(false);
+
   const navigate = useNavigate();
 
   const uploadLocal = async (file) => {
@@ -82,6 +85,11 @@ export default function Join() {
           html, body {
             overflow: hidden;
             height: 100%;
+          }
+
+          @keyframes modalFade {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
           }
         `}
       </style>
@@ -187,7 +195,7 @@ export default function Join() {
             }}
           />
 
-          {/* Selector de género con iconos */}
+          {/* Selector de género */}
           <div style={{ textAlign: "left", color: "white", fontSize: "14px" }}>
             ⚧ Sexo
           </div>
@@ -201,7 +209,6 @@ export default function Join() {
               justifyContent: "center",
             }}
           >
-            {/* CHICO */}
             <button
               onClick={() => setGender("male")}
               style={{
@@ -228,7 +235,6 @@ export default function Join() {
               ♂️ Chico
             </button>
 
-            {/* CHICA */}
             <button
               onClick={() => setGender("female")}
               style={{
@@ -256,10 +262,31 @@ export default function Join() {
             </button>
           </div>
 
-          {/* Foto de perfil */}
-          <div style={{ textAlign: "left", color: "white", fontSize: "14px" }}>
+          {/* Foto de perfil con icono de información */}
+          <div
+            style={{
+              textAlign: "left",
+              color: "white",
+              fontSize: "14px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
             📸 Foto de Perfil
+            <span
+              onClick={() => setShowInfoProfile(true)}
+              style={{
+                cursor: "pointer",
+                fontSize: "18px",
+                color: "gold",
+                textShadow: "0 0 6px gold",
+              }}
+            >
+              ℹ️
+            </span>
           </div>
+
           <input
             type="file"
             accept="image/*"
@@ -300,6 +327,72 @@ export default function Join() {
           </button>
         </div>
       </div>
+
+      {/* MODAL INFO FOTO PERFIL */}
+      {showInfoProfile && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(0,0,0,0.6)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            animation: "modalFade 0.3s ease",
+          }}
+        >
+          <div
+            style={{
+              background: "rgba(255,255,255,0.15)",
+              padding: "25px",
+              borderRadius: "20px",
+              width: "85%",
+              maxWidth: "380px",
+              color: "white",
+              textAlign: "center",
+              boxShadow: "0 0 20px gold",
+              backdropFilter: "blur(10px)",
+            }}
+          >
+            <h2 style={{ marginBottom: "10px", textShadow: "0 0 8px gold" }}>
+              📸 ¿Por qué pedimos esta foto?
+            </h2>
+
+            <p style={{ fontSize: "15px", lineHeight: "22px" }}>
+              La foto de perfil se usa para mostrar:
+              <br />
+              ⭐ Los nominados  
+              <br />
+              ⭐ Los usuarios conectados  
+              <br />
+              ⭐ Y si ganas… ¡tu foto aparecerá como GANADOR!  
+              <br />
+              <br />
+              Por eso es importante que sea una foto clara, bonita y bien iluminada.
+            </p>
+
+            <button
+              onClick={() => setShowInfoProfile(false)}
+              style={{
+                marginTop: "15px",
+                padding: "10px 20px",
+                background: "gold",
+                border: "none",
+                borderRadius: "12px",
+                cursor: "pointer",
+                fontWeight: "bold",
+                boxShadow: "0 0 15px gold",
+              }}
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

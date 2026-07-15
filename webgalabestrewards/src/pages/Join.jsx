@@ -120,11 +120,16 @@ export default function Join() {
     const formData = new FormData();
     formData.append("file", uploadFile, uploadFile.name);
 
-    const response = await fetch("https://gala-backend.franrvguijo.workers.dev/upload", {
-      method: "POST",
-      mode: "cors",
-      body: formData,
-    });
+    let response;
+    try {
+      response = await fetch("https://gala-backend.franrvguijo.workers.dev/upload", {
+        method: "POST",
+        body: formData,
+      });
+    } catch (err) {
+      addDebug("Fetch a /upload falló", err?.message || err);
+      throw new Error(`Error de red al subir imagen: ${err?.message || err}`);
+    }
 
     if (!response.ok) {
       const text = await response.text();

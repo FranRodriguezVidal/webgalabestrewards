@@ -19,21 +19,37 @@ export default function Join() {
   const navigate = useNavigate();
 
   const uploadLocal = async (file) => {
+    if (!file || typeof file.name !== "string") {
+      throw new Error("El archivo seleccionado no es válido.");
+    }
+
+    console.log("subiendo archivo", {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+    });
+
     const formData = new FormData();
     formData.append("file", file);
 
     const response = await fetch("https://gala-backend.franrvguijo.workers.dev/upload", {
       method: "POST",
+      mode: "cors",
+      headers: {
+        Accept: "application/json",
+      },
       body: formData,
     });
 
     if (!response.ok) {
       const text = await response.text();
+      console.error("uploadLocal error response", response.status, text);
       throw new Error(`Error al subir imagen: ${response.status} ${text}`);
     }
 
     const data = await response.json();
     if (!data?.fileName) {
+      console.error("uploadLocal invalid data", data);
       throw new Error("Respuesta inválida del servidor de imágenes.");
     }
 

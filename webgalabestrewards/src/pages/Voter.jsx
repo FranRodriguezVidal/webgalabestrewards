@@ -141,7 +141,7 @@ export default function Voter() {
   }
 `}
       </style>
-            <style>
+      <style>
         {`
     html, body {
       overflow: hidden;
@@ -207,14 +207,15 @@ export default function Voter() {
               value="https://webgalabestrewards.pages.dev/join"
               size={420}
               bgColor="transparent"
-              fgColor="#e310eb"
+              fgColor="#000000"
               imageSettings={{
-                src: "/qr.png",
+                src: "/qr_black_yellow.png",
                 height: 150,
                 width: 150,
                 excavate: true,
               }}
             />
+
           </div>
 
           {/* BOTÓN DEBAJO DEL QR */}

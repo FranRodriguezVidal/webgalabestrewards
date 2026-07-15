@@ -10,6 +10,7 @@ export default function Join() {
   const [profileFile, setProfileFile] = useState(null);
   const [winnerFile, setWinnerFile] = useState(null);
   const [error, setError] = useState("");
+  const [gender, setGender] = useState("");
 
   const navigate = useNavigate();
 
@@ -29,7 +30,7 @@ export default function Join() {
   const joinGala = async () => {
     setError("");
 
-    if (!name || !lastname || !profileFile || !winnerFile) {
+    if (!name || !lastname || !profileFile || !winnerFile || !gender) {
       setError("Por favor completa todos los campos.");
       return;
     }
@@ -45,6 +46,7 @@ export default function Join() {
     await setDoc(doc(db, "users", user.uid), {
       name,
       lastname,
+      gender,
       profilePhoto: profilePhotoName,
       winnerPhoto: winnerPhotoName,
       role: "voter",
@@ -62,7 +64,6 @@ export default function Join() {
   };
 
   return (
-    
     <div
       style={{
         padding: "20px",
@@ -76,14 +77,15 @@ export default function Join() {
         alignItems: "center",
       }}
     >
-            <style>
+      <style>
         {`
-    html, body {
-      overflow: hidden;
-      height: 100%;
-    }
-  `}
+          html, body {
+            overflow: hidden;
+            height: 100%;
+          }
+        `}
       </style>
+
       {/* Botón salir arriba derecha */}
       <button
         onClick={exitPage}
@@ -149,6 +151,10 @@ export default function Join() {
             marginTop: "10px",
           }}
         >
+          {/* Nombre */}
+          <div style={{ textAlign: "left", color: "white", fontSize: "14px" }}>
+            🧑 Nombre
+          </div>
           <input
             type="text"
             placeholder="Nombre"
@@ -163,6 +169,10 @@ export default function Join() {
             }}
           />
 
+          {/* Apellidos */}
+          <div style={{ textAlign: "left", color: "white", fontSize: "14px" }}>
+            👤 Apellidos
+          </div>
           <input
             type="text"
             placeholder="Apellidos"
@@ -177,8 +187,78 @@ export default function Join() {
             }}
           />
 
+          {/* Selector de género con iconos */}
           <div style={{ textAlign: "left", color: "white", fontSize: "14px" }}>
-            Foto de Perfil
+            ⚧ Sexo
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: "12px",
+              marginBottom: "10px",
+              marginTop: "5px",
+              justifyContent: "center",
+            }}
+          >
+            {/* CHICO */}
+            <button
+              onClick={() => setGender("male")}
+              style={{
+                padding: "12px 20px",
+                borderRadius: "12px",
+                border:
+                  gender === "male"
+                    ? "2px solid gold"
+                    : "2px solid rgba(255,255,255,0.3)",
+                background:
+                  gender === "male"
+                    ? "rgba(255,215,0,0.25)"
+                    : "rgba(255,255,255,0.15)",
+                color: "white",
+                cursor: "pointer",
+                fontSize: "16px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                backdropFilter: "blur(6px)",
+                transition: "all 0.3s ease",
+              }}
+            >
+              ♂️ Chico
+            </button>
+
+            {/* CHICA */}
+            <button
+              onClick={() => setGender("female")}
+              style={{
+                padding: "12px 20px",
+                borderRadius: "12px",
+                border:
+                  gender === "female"
+                    ? "2px solid gold"
+                    : "2px solid rgba(255,255,255,0.3)",
+                background:
+                  gender === "female"
+                    ? "rgba(255,215,0,0.25)"
+                    : "rgba(255,255,255,0.15)",
+                color: "white",
+                cursor: "pointer",
+                fontSize: "16px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                backdropFilter: "blur(6px)",
+                transition: "all 0.3s ease",
+              }}
+            >
+              ♀️ Chica
+            </button>
+          </div>
+
+          {/* Foto de perfil */}
+          <div style={{ textAlign: "left", color: "white", fontSize: "14px" }}>
+            📸 Foto de Perfil
           </div>
           <input
             type="file"
@@ -187,8 +267,9 @@ export default function Join() {
             style={{ width: "100%" }}
           />
 
+          {/* Foto para ganador */}
           <div style={{ textAlign: "left", color: "white", fontSize: "14px" }}>
-            Foto para Ganador
+            🏆 Foto para Ganador
           </div>
           <input
             type="file"
@@ -197,6 +278,7 @@ export default function Join() {
             style={{ width: "100%" }}
           />
 
+          {/* Botón entrar */}
           <button
             onClick={joinGala}
             style={{
@@ -208,9 +290,13 @@ export default function Join() {
               cursor: "pointer",
               boxShadow: "0 0 20px gold",
               marginTop: "10px",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "10px",
             }}
           >
-            Entrar
+            🚀 Entrar
           </button>
         </div>
       </div>

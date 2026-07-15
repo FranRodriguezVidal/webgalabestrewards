@@ -307,8 +307,8 @@ export default function Join() {
               marginBottom: "10px",
             }}
           >
-            <strong>Debug info:</strong>
-            <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{debugInfo}</pre>
+            //<strong>Debug info:</strong>
+            //<pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{debugInfo}</pre>
           </div>
         )}
 

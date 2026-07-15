@@ -11,6 +11,7 @@ export default function Join() {
   const [winnerFile, setWinnerFile] = useState(null);
   const [error, setError] = useState("");
   const [gender, setGender] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   // MODAL INFO FOTO PERFIL
   const [showInfoProfile, setShowInfoProfile] = useState(false);
@@ -23,43 +24,65 @@ export default function Join() {
 
     const response = await fetch("https://gala-backend.franrvguijo.workers.dev/upload", {
       method: "POST",
-      body: formData
+      body: formData,
     });
 
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Error al subir imagen: ${response.status} ${text}`);
+    }
+
     const data = await response.json();
+    if (!data?.fileName) {
+      throw new Error("Respuesta inválida del servidor de imágenes.");
+    }
+
     return data.fileName;
   };
 
   const joinGala = async () => {
     setError("");
+    setIsLoading(true);
 
     if (!name || !lastname || !profileFile || !winnerFile || !gender) {
       setError("Por favor completa todos los campos.");
+      setIsLoading(false);
       return;
     }
 
-    await auth.signOut();
+    try {
+      try {
+        await auth.signOut();
+      } catch (err) {
+        // Ignorar si no hay sesión activa.
+      }
 
-    const userCredential = await signInAnonymously(auth);
-    const user = userCredential.user;
+      const userCredential = await signInAnonymously(auth);
+      const user = userCredential.user;
 
-    const profilePhotoName = await uploadLocal(profileFile);
-    const winnerPhotoName = await uploadLocal(winnerFile);
+      const profilePhotoName = await uploadLocal(profileFile);
+      const winnerPhotoName = await uploadLocal(winnerFile);
 
-    await setDoc(doc(db, "users", user.uid), {
-      name,
-      lastname,
-      gender,
-      profilePhoto: profilePhotoName,
-      winnerPhoto: winnerPhotoName,
-      role: "voter",
-      connected: true,
-      votes: 0,
-    });
+      await setDoc(doc(db, "users", user.uid), {
+        name,
+        lastname,
+        gender,
+        profilePhoto: profilePhotoName,
+        winnerPhoto: winnerPhotoName,
+        role: "voter",
+        connected: true,
+        votes: 0,
+      });
 
-    sessionStorage.setItem("voterId", user.uid);
-    sessionStorage.setItem("voterAuth", "true");
-    navigate("/voter");
+      sessionStorage.setItem("voterId", user.uid);
+      sessionStorage.setItem("voterAuth", "true");
+      navigate("/voter");
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Error al unirse a la gala. Intenta de nuevo.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const exitPage = () => {
@@ -309,13 +332,14 @@ export default function Join() {
           {/* Botón entrar */}
           <button
             onClick={joinGala}
+            disabled={isLoading}
             style={{
               padding: "14px",
               fontSize: "18px",
-              background: "gold",
+              background: isLoading ? "rgba(255,215,0,0.5)" : "gold",
               border: "none",
               borderRadius: "14px",
-              cursor: "pointer",
+              cursor: isLoading ? "default" : "pointer",
               boxShadow: "0 0 20px gold",
               marginTop: "10px",
               display: "flex",
@@ -324,7 +348,7 @@ export default function Join() {
               gap: "10px",
             }}
           >
-            🚀 Entrar
+            {isLoading ? "Subiendo..." : "🚀 Entrar"}
           </button>
         </div>
       </div>

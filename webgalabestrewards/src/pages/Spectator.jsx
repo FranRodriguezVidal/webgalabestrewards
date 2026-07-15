@@ -230,7 +230,22 @@ export default function Spectator() {
                     }}
                 >
                     <h2 style={{ color: "gold" }}>Presentador</h2>
-                    <img src={`https://gala-backend.franrvguijo.workers.dev/image/${presenter.photo}`} alt={presenter.name} width="120" />
+                    <img
+                        src={
+                            presenter.photo
+                                ? `https://gala-backend.franrvguijo.workers.dev/image/${presenter.photo}`
+                                : presenter.profilePhoto
+                                ? `https://gala-backend.franrvguijo.workers.dev/image/${presenter.profilePhoto}`
+                                : "https://via.placeholder.com/120?text=Sin+imagen"
+                        }
+                        onError={(event) => {
+                            event.currentTarget.onerror = null;
+                            event.currentTarget.src = "https://via.placeholder.com/120?text=Sin+imagen";
+                        }}
+                        alt={presenter.name}
+                        width="120"
+                        style={{ borderRadius: "50%", objectFit: "cover" }}
+                    />
 
                     <p style={{ fontSize: "24px", color: "white" }}>{presenter.name}</p>
                     <p style={{ color: "white" }}>Votos: {presenter.votes}</p>

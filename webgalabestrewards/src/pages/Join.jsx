@@ -10,6 +10,7 @@ export default function Join() {
   const [profileFile, setProfileFile] = useState(null);
   const [winnerFile, setWinnerFile] = useState(null);
   const [error, setError] = useState("");
+  const [debugInfo, setDebugInfo] = useState("");
   const [gender, setGender] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -18,49 +19,85 @@ export default function Join() {
 
   const navigate = useNavigate();
 
+  const addDebug = (message, details) => {
+    const detailText = details
+      ? typeof details === "string"
+        ? details
+        : JSON.stringify(details, null, 2)
+      : "";
+
+    const entry = `${new Date().toISOString()} - ${message}${detailText ? `\n${detailText}` : ""}`;
+    setDebugInfo((prev) => [entry, prev].filter(Boolean).join("\n\n"));
+    console.log(entry);
+  };
+
   const compressImageForUpload = async (file) => {
     if (!file || typeof file.name !== "string") {
       throw new Error("El archivo seleccionado no es válido.");
     }
 
     if (!file.type.startsWith("image/")) {
+      addDebug("No se comprimirá porque no es imagen", { name: file.name, type: file.type });
       return file;
     }
 
-    if (file.size < 1500000 && file.type !== "image/heic") {
+    const lowerName = file.name.toLowerCase();
+    const isHeic = file.type === "image/heic" || lowerName.endsWith(".heic");
+
+    if (isHeic) {
+      addDebug("HEIC detectado, se sube sin comprimir", { name: file.name, type: file.type, size: file.size });
       return file;
     }
 
-    const imageBitmap = await createImageBitmap(file);
-    const maxDimension = 1200;
-    let { width, height } = imageBitmap;
+    if (file.size < 1500000) {
+      addDebug("Imagen pequeña, no se comprime", { name: file.name, type: file.type, size: file.size });
+      return file;
+    }
 
-    if (width > maxDimension || height > maxDimension) {
-      if (width > height) {
-        height = Math.round((height * maxDimension) / width);
-        width = maxDimension;
-      } else {
-        width = Math.round((width * maxDimension) / height);
-        height = maxDimension;
+    try {
+      const imageBitmap = await createImageBitmap(file);
+      const maxDimension = 1200;
+      let { width, height } = imageBitmap;
+
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = Math.round((height * maxDimension) / width);
+          width = maxDimension;
+        } else {
+          width = Math.round((width * maxDimension) / height);
+          height = maxDimension;
+        }
       }
-    }
 
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(imageBitmap, 0, 0, width, height);
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(imageBitmap, 0, 0, width, height);
 
-    const blob = await new Promise((resolve) => {
-      canvas.toBlob(resolve, "image/jpeg", 0.75);
-    });
+      const blob = await new Promise((resolve) => {
+        canvas.toBlob(resolve, "image/jpeg", 0.75);
+      });
 
-    if (!blob) {
+      if (!blob) {
+        throw new Error("No se pudo generar el blob de imagen");
+      }
+
+      const newName = file.name.replace(/\.[^/.]+$/, ".jpg");
+      addDebug("Imagen comprimida", {
+        original: { name: file.name, type: file.type, size: file.size },
+        compressed: { name: newName, type: "image/jpeg", size: blob.size },
+      });
+      return new File([blob], newName, { type: "image/jpeg" });
+    } catch (err) {
+      addDebug("Falló la compresión, se usa el archivo original", {
+        error: err?.message || err,
+        name: file.name,
+        type: file.type,
+        size: file.size,
+      });
       return file;
     }
-
-    const newName = file.name.replace(/\.[^/.]+$/, ".jpg");
-    return new File([blob], newName, { type: "image/jpeg" });
   };
 
   const uploadLocal = async (file) => {
@@ -70,7 +107,7 @@ export default function Join() {
 
     const uploadFile = await compressImageForUpload(file);
 
-    console.log("subiendo archivo", {
+    addDebug("Preparando subida", {
       name: uploadFile.name,
       type: uploadFile.type,
       size: uploadFile.size,
@@ -87,16 +124,25 @@ export default function Join() {
 
     if (!response.ok) {
       const text = await response.text();
-      console.error("uploadLocal error response", response.status, text);
+      addDebug("Error en respuesta de upload", { status: response.status, body: text });
       throw new Error(`Error al subir imagen: ${response.status} ${text}`);
     }
 
-    const data = await response.json();
-    if (!data?.fileName) {
-      console.error("uploadLocal invalid data", data);
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (err) {
+      addDebug("Respuesta no JSON", { text, error: err?.message || err });
       throw new Error("Respuesta inválida del servidor de imágenes.");
     }
 
+    if (!data?.fileName) {
+      addDebug("Falta fileName en respuesta", data);
+      throw new Error("Respuesta inválida del servidor de imágenes.");
+    }
+
+    addDebug("Upload completado", data);
     return data.fileName;
   };
 
@@ -229,9 +275,31 @@ export default function Join() {
               color: "white",
               fontWeight: "bold",
               marginBottom: "10px",
+              whiteSpace: "pre-wrap",
+              textAlign: "left",
             }}
           >
             {error}
+          </div>
+        )}
+
+        {debugInfo && (
+          <div
+            style={{
+              background: "rgba(0,0,0,0.5)",
+              padding: "10px",
+              borderRadius: "10px",
+              color: "white",
+              fontSize: "12px",
+              lineHeight: "1.4",
+              maxHeight: "220px",
+              overflowY: "auto",
+              textAlign: "left",
+              marginBottom: "10px",
+            }}
+          >
+            <strong>Debug info:</strong>
+            <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{debugInfo}</pre>
           </div>
         )}
 
@@ -373,7 +441,7 @@ export default function Join() {
 
           <input
             type="file"
-            accept="image/*"
+            accept="image/*,.heic"
             onChange={(e) => setProfileFile(e.target.files[0])}
             style={{ width: "100%" }}
           />
@@ -384,7 +452,7 @@ export default function Join() {
           </div>
           <input
             type="file"
-            accept="image/*"
+            accept="image/*,.heic"
             onChange={(e) => setWinnerFile(e.target.files[0])}
             style={{ width: "100%" }}
           />

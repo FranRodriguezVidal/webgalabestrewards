@@ -36,16 +36,20 @@ export default function Join() {
       throw new Error("El archivo seleccionado no es válido.");
     }
 
-    if (!file.type.startsWith("image/")) {
-      addDebug("No se comprimirá porque no es imagen", { name: file.name, type: file.type });
+    const lowerName = file.name.toLowerCase();
+    const ext = lowerName.split(".").pop();
+    const imageExtensions = ["jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff", "heic", "heif", "svg", "avif"];
+    const isImage = file.type.startsWith("image/") || imageExtensions.includes(ext);
+
+    if (!isImage) {
+      addDebug("No se comprimirá porque no es un formato de imagen conocido", { name: file.name, type: file.type });
       return file;
     }
 
-    const lowerName = file.name.toLowerCase();
-    const isHeic = file.type === "image/heic" || lowerName.endsWith(".heic");
+    const isHeic = file.type === "image/heic" || ext === "heic" || ext === "heif";
 
     if (isHeic) {
-      addDebug("HEIC detectado, se sube sin comprimir", { name: file.name, type: file.type, size: file.size });
+      addDebug("HEIC/HEIF detectado, se sube sin comprimir", { name: file.name, type: file.type, size: file.size });
       return file;
     }
 
@@ -441,7 +445,7 @@ export default function Join() {
 
           <input
             type="file"
-            accept="image/*,.heic"
+            accept="image/*,.heic,.heif,.jpeg,.jpg,.png,.webp,.bmp,.tiff,.avif"
             onChange={(e) => setProfileFile(e.target.files[0])}
             style={{ width: "100%" }}
           />
@@ -452,7 +456,7 @@ export default function Join() {
           </div>
           <input
             type="file"
-            accept="image/*,.heic"
+            accept="image/*,.heic,.heif,.jpeg,.jpg,.png,.webp,.bmp,.tiff,.avif"
             onChange={(e) => setWinnerFile(e.target.files[0])}
             style={{ width: "100%" }}
           />

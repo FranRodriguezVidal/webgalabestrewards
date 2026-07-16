@@ -9,9 +9,14 @@ import {
   getDoc,
   deleteDoc,
   serverTimestamp,
+  increment,
+  getDocs,
+  query,
+  where,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
+import { findDuplicateQuestion, getQuestionsForGender } from "../questions";
 
 
 export default function Voter() {
@@ -19,8 +24,14 @@ export default function Voter() {
   const [galaState, setGalaState] = useState(null);
   const [nominees, setNominees] = useState([]);
   const [hasVoted, setHasVoted] = useState(false);
+  const [hasVotedChico, setHasVotedChico] = useState(false);
+  const [hasVotedChica, setHasVotedChica] = useState(false);
+  const [questionText, setQuestionText] = useState("");
+  const [questionError, setQuestionError] = useState("");
   const navigate = useNavigate();
-
+  const questionTextInState = galaState?.currentQuestion?.text || "";
+  const questionGender = galaState?.currentGenderRound || "";
+  const isQuestionExpired = galaState?.questionExpiresAt && Date.now() > galaState.questionExpiresAt;
 
   // Detectar usuario actual
   useEffect(() => {
@@ -104,32 +115,207 @@ export default function Voter() {
     return () => unsubscribe();
   }, [galaState]);
 
-  // Comprobar si el usuario ya votó
+  // Comprobar si el usuario ya votó en la ronda actual
   useEffect(() => {
-    if (!userId || !galaState) return;
+    if (!userId || !galaState || !galaState.currentCategory) return;
 
     const checkVote = async () => {
       const userDoc = await getDoc(doc(db, "users", userId));
       if (userDoc.exists()) {
-        setHasVoted(userDoc.data().votes > 0);
+        const data = userDoc.data();
+        const votedRounds = data.votedRounds || {};
+        const categoryRounds = votedRounds[galaState.currentCategory] || {};
+        setHasVotedChico(!!categoryRounds.chico);
+        setHasVotedChica(!!categoryRounds.chica);
+        setHasVoted(!!categoryRounds.chico && !!categoryRounds.chica);
       }
     };
 
     checkVote();
   }, [userId, galaState]);
 
+  // Seleccionar pregunta del banco automático si no se ha definido ninguna
+  useEffect(() => {
+    if (!galaState || galaState.stage !== "question" || galaState.currentQuestion) return;
+    if (!galaState.currentGenderRound) return;
+
+    const questionsForGender = getQuestionsForGender(galaState.currentGenderRound);
+    if (!questionsForGender.length) return;
+
+    const chosenQuestion = questionsForGender[Math.floor(Math.random() * questionsForGender.length)];
+
+    const publishQuestion = async () => {
+      try {
+        await updateDoc(doc(db, "galaState", "state"), {
+          currentQuestion: {
+            text: chosenQuestion.text,
+            gender: chosenQuestion.gender,
+            createdBy: "system",
+            createdAt: Date.now(),
+            expiresAt: Date.now() + 150000,
+          },
+          stage: "waiting",
+          questionStatus: "waiting",
+          questionExpiresAt: Date.now() + 150000,
+          votingExpiresAt: null,
+          lastActionAt: serverTimestamp(),
+        });
+      } catch (error) {
+        console.warn("Error creando pregunta automática:", error);
+      }
+    };
+
+    publishQuestion();
+  }, [galaState]);
+
+  // Abrir votación automáticamente cuando la pregunta expire
+  useEffect(() => {
+    if (!galaState || galaState.stage !== "waiting" || !galaState.currentQuestion || !galaState.questionExpiresAt) return;
+
+    const interval = setInterval(async () => {
+      if (Date.now() <= galaState.questionExpiresAt) return;
+      clearInterval(interval);
+
+      try {
+        await updateDoc(doc(db, "galaState", "state"), {
+          stage: "voting",
+          questionStatus: "voting",
+          votingExpiresAt: Date.now() + 150000,
+          lastActionAt: serverTimestamp(),
+        });
+      } catch (error) {
+        console.warn("Error abriendo votación automática:", error);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [galaState]);
+
+  // Avanzar automáticamente de chico a chica después de resultados
+  useEffect(() => {
+    if (!galaState || galaState.stage !== "results" || galaState.currentGenderRound !== "chico") return;
+    const completedRounds = galaState.roundsCompleted || [];
+    if (completedRounds.includes("chico")) return;
+
+    const timeout = setTimeout(async () => {
+      try {
+        await updateDoc(doc(db, "galaState", "state"), {
+          stage: "question",
+          currentGenderRound: "chica",
+          questionStatus: "creating",
+          currentQuestion: null,
+          questionExpiresAt: Date.now() + 150000,
+          votingExpiresAt: null,
+          roundsCompleted: [...completedRounds, "chico"],
+          resultsByGender: {
+            ...(galaState.resultsByGender || {}),
+            chico: {
+              winnerId: galaState.autoWinnerId || null,
+              leastVotedNomineeId: galaState.leastVotedNomineeId || null,
+              question: galaState.currentQuestion?.text || "",
+            },
+          },
+          lastActionAt: serverTimestamp(),
+        });
+      } catch (error) {
+        console.warn("Error avanzando a ronda chica automáticamente:", error);
+      }
+    }, 5000);
+
+    return () => clearTimeout(timeout);
+  }, [galaState]);
+
+  // Cerrar automáticamente la votación cuando expire el temporizador
+  useEffect(() => {
+    if (!galaState || galaState.stage !== "voting" || !galaState.votingExpiresAt) return;
+
+    const interval = setInterval(async () => {
+      if (Date.now() <= galaState.votingExpiresAt) return;
+      clearInterval(interval);
+
+      if (!galaState.currentCategory) return;
+
+      const nomineesQuery = query(
+        collection(db, "nominees"),
+        where("categoryId", "==", galaState.currentCategory)
+      );
+
+      const snapshot = await getDocs(nomineesQuery);
+      const nomineesList = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      const voteEntries = nomineesList.map((nominee) => ({
+        id: nominee.id,
+        votes: nominee.votes || 0,
+      }));
+
+      const hasVote = voteEntries.some((entry) => entry.votes > 0);
+      const sortedByVotes = [...voteEntries].sort((a, b) => b.votes - a.votes);
+      const sortedByLeast = [...voteEntries].sort((a, b) => a.votes - b.votes);
+      const winnerId = sortedByVotes[0]?.id || null;
+      const leastVotedId = sortedByLeast[0]?.id || null;
+
+      await updateDoc(doc(db, "galaState", "state"), {
+        stage: "results",
+        resultsClosedAt: Date.now(),
+        autoDecidedByNoVotes: !hasVote,
+        autoWinnerId: !hasVote ? winnerId : null,
+        leastVotedNomineeId: leastVotedId,
+        showPresenter: false,
+        lastActionAt: serverTimestamp(),
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [galaState]);
+
+  // Guardar pantalla actual para que el admin la vea
+  useEffect(() => {
+    if (!userId || !galaState) return;
+
+    const getScreenLabel = () => {
+      if (galaState.stage === "question") {
+        return questionText ? "Creando pregunta" : "Ronda de pregunta";
+      }
+      if (galaState.stage === "waiting") {
+        return questionTextInState ? "Esperando votación" : "Sin pregunta";
+      }
+      if (galaState.stage === "voting") {
+        return hasVoted ? "Esperando resultados" : "Votando";
+      }
+      if (galaState.stage === "paused") {
+        return "Votación pausada";
+      }
+      if (galaState.stage === "results") {
+        return "Resultados";
+      }
+      return "En la gala";
+    };
+
+    const screenLabel = getScreenLabel();
+    const userRef = doc(db, "users", userId);
+
+    updateDoc(userRef, {
+      currentScreen: screenLabel,
+      lastSeen: serverTimestamp(),
+    }).catch((error) => {
+      console.warn("Error actualizando pantalla actual del usuario:", error);
+    });
+  }, [userId, galaState, questionText, questionTextInState, hasVoted]);
+
   // Función para votar
   const vote = async (nomineeId) => {
     if (!userId || hasVoted || galaState.stage !== "voting") return;
+    if (!galaState.currentCategory || !galaState.currentGenderRound) return;
 
     const nominee = nominees.find((n) => n.id === nomineeId);
+    if (!nominee) return;
 
     await updateDoc(doc(db, "nominees", nomineeId), {
-      votes: nominee.votes + 1
+      votes: increment(1),
     });
 
     await updateDoc(doc(db, "users", userId), {
-      votes: 1
+      votes: increment(1),
+      [`votedRounds.${galaState.currentCategory}.${galaState.currentGenderRound}`]: true,
     });
 
     setHasVoted(true);
@@ -159,6 +345,10 @@ export default function Voter() {
   if (!galaState) return <p>Cargando...</p>;
 
   const alreadyJoined = sessionStorage.getItem("voterId");
+  const creatingQuestion = galaState.stage === "question";
+  const waitingForVoting = galaState.stage === "waiting";
+  const showingQuestion = ["question", "waiting", "voting"].includes(galaState.stage);
+  const showWaitingForAdmin = alreadyJoined && !showingQuestion && galaState.stage !== "voting";
 
   return (
     <div
@@ -311,7 +501,7 @@ export default function Voter() {
 
 
       {/* ESPERANDO AL ADMIN */}
-      {alreadyJoined && galaState.stage !== "voting" && (
+      {showWaitingForAdmin && (
         <div style={{ marginTop: "80px" }}>
           <h2 style={{ color: "white", marginBottom: "20px" }}>
             Esperando a que el administrador abra las votaciones…
@@ -398,9 +588,100 @@ export default function Voter() {
       )}
 
       {/* VOTACIÓN */}
+      {alreadyJoined && creatingQuestion && (
+        <div style={{ marginTop: "40px" }}>
+          <h2 style={{ marginBottom: "12px" }}>
+            Fase de pregunta ({questionGender})
+          </h2>
+          {questionTextInState ? (
+            <div style={{ color: "white", fontSize: "18px" }}>
+              <p>Pregunta creada:</p>
+              <p style={{ fontWeight: "bold", marginTop: "6px" }}>{questionTextInState}</p>
+              <p style={{ marginTop: "12px", color: "gold" }}>Esperando para la votación...</p>
+            </div>
+          ) : (
+            <div>
+              <p style={{ color: "white", marginBottom: "10px" }}>
+                Escribe una pregunta para esta ronda (3 minutos).
+              </p>
+              {questionError && (
+                <div style={{ color: "#ff9c9c", marginBottom: "10px" }}>{questionError}</div>
+              )}
+              <textarea
+                value={questionText}
+                onChange={(event) => setQuestionText(event.target.value)}
+                rows={4}
+                style={{ width: "100%", borderRadius: "12px", padding: "12px" }}
+              />
+              <button
+                onClick={async () => {
+                  const trimmed = questionText.trim();
+                  if (!trimmed) {
+                    setQuestionError("Escribe una pregunta antes de enviar.");
+                    return;
+                  }
+                  const duplicate = findDuplicateQuestion(trimmed);
+                  if (duplicate) {
+                    setQuestionError("Esa pregunta ya existe: " + duplicate.text);
+                    return;
+                  }
+                  try {
+                    await updateDoc(doc(db, "galaState", "state"), {
+                      currentQuestion: {
+                        text: trimmed,
+                        gender: questionGender,
+                        createdBy: userId,
+                        createdAt: Date.now(),
+                        expiresAt: Date.now() + 180000,
+                      },
+                      stage: "waiting",
+                      questionStatus: "waiting",
+                      lastActionAt: serverTimestamp(),
+                    });
+                  } catch (err) {
+                    setQuestionError("Error guardando la pregunta. Intenta de nuevo.");
+                  }
+                }}
+                style={{
+                  marginTop: "10px",
+                  padding: "10px 18px",
+                  background: "gold",
+                  border: "none",
+                  borderRadius: "10px",
+                  cursor: "pointer",
+                }}
+              >
+                Crear pregunta
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {alreadyJoined && galaState.stage === "waiting" && (
+        <div style={{ marginTop: "40px" }}>
+          <h2>Esperando votación</h2>
+          {questionTextInState ? (
+            <>
+              <p>Pregunta seleccionada:</p>
+              <p style={{ fontWeight: "bold" }}>{questionTextInState}</p>
+            </>
+          ) : (
+            <p>No se creó una pregunta en el tiempo asignado.</p>
+          )}
+          <p style={{ marginTop: "12px" }}>En cuanto el admin abra la votación, podrás votar.</p>
+        </div>
+      )}
+
       {alreadyJoined && galaState.stage === "voting" && !hasVoted && (
         <div style={{ marginTop: "40px" }}>
-          <h2>Categoría: {galaState.currentCategory}</h2>
+          <h2>Categoría: {galaState.currentCategory} ({galaState.currentGenderRound})</h2>
+          {questionTextInState && (
+            <div style={{ marginBottom: "20px", color: "white" }}>
+              <p>Pregunta actual:</p>
+              <p style={{ fontWeight: "bold" }}>{questionTextInState}</p>
+            </div>
+          )}
 
           {nominees.map((nominee) => (
             <div key={nominee.id} style={{ marginBottom: "20px" }}>

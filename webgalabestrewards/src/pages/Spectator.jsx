@@ -17,6 +17,11 @@ export default function Spectator() {
     const isVotingScreen = queryParams.get("start") === "true";
 
     const isVotingActive = galaState?.stage === "voting";
+    const isQuestionPhase = galaState?.stage === "question";
+    const isWaitingPhase = galaState?.stage === "waiting";
+    const currentQuestionText = galaState?.currentQuestion?.text || "";
+    const currentQuestionGender = galaState?.currentGenderRound || "";
+    const currentCategory = galaState?.currentCategory || "";
     const orbitRadius = users.length > 10 ? 150 : users.length > 6 ? 165 : 180;
     const userCardSize = users.length > 10 ? 120 : users.length > 6 ? 140 : 160;
 
@@ -462,7 +467,7 @@ export default function Spectator() {
                                 textShadow: "0 0 25px rgba(255,215,0,0.7)",
                             }}
                         >
-                            HORA DE VOTACIONES
+                            {isQuestionPhase ? "Fase de pregunta" : isWaitingPhase ? "Preparando votación" : "HORA DE VOTACIONES"}
                         </h1>
 
                         <p
@@ -473,7 +478,11 @@ export default function Spectator() {
                                 textShadow: "0 0 14px rgba(0,0,0,0.25)",
                             }}
                         >
-                            Mirad vuestro dispositivo para votar, y disfruta!!
+                            {isQuestionPhase
+                                ? `Pregunta para la ronda ${currentQuestionGender}`
+                                : isWaitingPhase
+                                    ? `Esperando inicio de votación para ${currentQuestionGender}`
+                                    : "Mirad vuestro dispositivo para votar, y disfruta!!"}
                         </p>
                     </div>
 
@@ -498,19 +507,44 @@ export default function Spectator() {
                             </div>
 
                             <div>
-                                <p style={{ margin: "0 0 6px", opacity: 0.8 }}>Inicio estimado de ganadores</p>
+                                <p style={{ margin: "0 0 6px", opacity: 0.8 }}>Ronda</p>
                                 <p style={{ margin: 0, fontSize: "28px", fontWeight: "700" }}>
-                                    {isVotingActive ? getEstimatedEndTime() : "Esperando admin"}
+                                    {currentQuestionGender || "Sin ronda"}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p style={{ margin: "0 0 6px", opacity: 0.8 }}>Categoría</p>
+                                <p style={{ margin: 0, fontSize: "28px", fontWeight: "700" }}>
+                                    {currentCategory || "Sin categoría"}
+                                </p>
+                            </div>
+
+                            <div style={{ flex: "1 1 100%", minWidth: "280px" }}>
+                                <p style={{ margin: "0 0 6px", opacity: 0.8 }}>Reglas rápidas</p>
+                                <p style={{ margin: 0, fontSize: "16px", lineHeight: "1.55", fontWeight: "500" }}>
+                                    - Cada votación dura 2:30.
+                                    <br />- Debes votar una vez en cada género chicho/chica.
+                                    <br />- Si no votas, se cuenta como voto en blanco y gana automáticamente el candidato con más votos.
+                                    <br />- El menos votado será el encargado de entregar el trofeo si aplica.
                                 </p>
                             </div>
 
                             <div>
                                 <p style={{ margin: "0 0 6px", opacity: 0.8 }}>Estado</p>
                                 <p style={{ margin: 0, fontSize: "28px", fontWeight: "700" }}>
-                                    {isVotingActive ? "Votación activa" : "Pausado por admin"}
+                                    {isVotingActive ? "Votación activa" : isQuestionPhase ? "Creando pregunta" : isWaitingPhase ? "Esperando votación" : "Pausado por admin"}
                                 </p>
                             </div>
                         </div>
+                        {currentQuestionText && (
+                            <div style={{ marginTop: "16px", color: "white", textAlign: "left" }}>
+                                <p style={{ margin: 0, opacity: 0.8 }}>Pregunta actual</p>
+                                <p style={{ margin: "6px 0 0", fontSize: "20px", fontWeight: "700" }}>
+                                    {currentQuestionText}
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                     {!isVotingActive && (

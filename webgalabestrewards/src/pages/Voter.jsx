@@ -242,7 +242,7 @@ export default function Voter() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [galaState]);
+  }, [galaState, currentQuestionNumber, questionVoteKey]);
 
   // Cerrar votación automáticamente a los 2m30s o antes si todos votan ambos géneros
   useEffect(() => {

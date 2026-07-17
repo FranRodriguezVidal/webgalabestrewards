@@ -386,7 +386,7 @@ export default function Voter() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [galaState]);
+  }, [galaState, currentQuestionNumber, questionVoteKey]);
 
   // Guardar pantalla actual para que el admin la vea
   useEffect(() => {

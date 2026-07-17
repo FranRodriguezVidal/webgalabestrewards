@@ -1,7 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { db } from "../firebase";
-import { collection, onSnapshot, doc } from "firebase/firestore";
+import {
+    collection,
+    onSnapshot,
+    doc,
+    updateDoc,
+    serverTimestamp,
+    getDocs,
+    query,
+    where,
+    writeBatch,
+} from "firebase/firestore";
 
 export default function Spectator() {
     const [users, setUsers] = useState([]);
@@ -15,23 +25,166 @@ export default function Spectator() {
 
     const queryParams = new URLSearchParams(location.search);
     const isVotingScreen = queryParams.get("start") === "true";
+    const isShowScreen = queryParams.get("show") === "results";
 
     const isVotingActive = galaState?.stage === "voting";
-    const isQuestionPhase = galaState?.stage === "question";
-    const isWaitingPhase = galaState?.stage === "waiting";
-    const currentQuestionText = galaState?.currentQuestion?.text || "";
-    const currentQuestionGender = galaState?.currentGenderRound || "";
-    const currentCategory = galaState?.currentCategory || "";
     const orbitRadius = users.length > 10 ? 150 : users.length > 6 ? 165 : 180;
     const userCardSize = users.length > 10 ? 120 : users.length > 6 ? 140 : 160;
+    const TOTAL_QUESTIONS = 5;
+    const QUESTION_DURATION_MS = 10000;
+    const ROUND_DURATION_MS = 150000;
+    const revealQuestionNumber = galaState?.revealQuestionNumber || 1;
+    const revealResult = galaState?.resultsByGender?.[`q${revealQuestionNumber}`] || null;
+    const isRevealModeActive = galaState?.revealModeActive === true;
+    const [showBlockIndex, setShowBlockIndex] = useState(-1);
 
-    const getEstimatedEndTime = () => {
-        const totalVotes = nominees.reduce((sum, nominee) => sum + (nominee.votes || 0), 0);
-        const baseSeconds = 30;
-        const extraPerVote = 10;
-        const estimatedSeconds = Math.min(300, baseSeconds + totalVotes * extraPerVote);
-        const endTime = new Date(currentTime.getTime() + estimatedSeconds * 1000);
-        return endTime.toLocaleTimeString();
+    const getGalaStatusLabel = () => {
+        if (galaState?.stage === "voting") return "EN VOTACION";
+        if (galaState?.stage === "paused") return "EN PAUSA";
+        if (galaState?.stage === "results") return "FINALIZACION";
+        return "CARGANDO";
+    };
+
+    const getEstimatedGalaTime = () => {
+        const now = currentTime.getTime();
+        const totalQuestions = galaState?.totalQuestions || TOTAL_QUESTIONS;
+        const currentQuestionNumber = galaState?.currentQuestionNumber || 1;
+        const completedQuestions = Math.max(0, currentQuestionNumber - 1);
+        const remainingQuestionCount = Math.max(0, totalQuestions - currentQuestionNumber);
+
+        let remainingMs = 0;
+
+        if (!galaState?.stage) {
+            remainingMs = totalQuestions * (QUESTION_DURATION_MS + ROUND_DURATION_MS);
+        } else if (galaState.stage === "results") {
+            remainingMs = 0;
+        } else if (galaState.stage === "voting") {
+            const thisVotingRemaining = Math.max(0, (galaState.votingExpiresAt || now) - now);
+            remainingMs = thisVotingRemaining + remainingQuestionCount * (QUESTION_DURATION_MS + ROUND_DURATION_MS);
+        } else if (galaState.stage === "question" || galaState.stage === "waiting") {
+            const thisQuestionRemaining = Math.max(0, (galaState.questionExpiresAt || now + QUESTION_DURATION_MS) - now);
+            remainingMs = thisQuestionRemaining + ROUND_DURATION_MS + remainingQuestionCount * (QUESTION_DURATION_MS + ROUND_DURATION_MS);
+        } else {
+            const fallbackRemainingQuestions = Math.max(0, totalQuestions - completedQuestions);
+            remainingMs = fallbackRemainingQuestions * (QUESTION_DURATION_MS + ROUND_DURATION_MS);
+        }
+
+        const estimated = new Date(now + remainingMs);
+        return estimated.toLocaleTimeString();
+    };
+
+    const getRemainingGalaCountdown = () => {
+        const now = currentTime.getTime();
+        const totalQuestions = galaState?.totalQuestions || TOTAL_QUESTIONS;
+        const currentQuestionNumber = galaState?.currentQuestionNumber || 1;
+        const remainingQuestionCount = Math.max(0, totalQuestions - currentQuestionNumber);
+
+        let remainingMs = 0;
+        if (!galaState?.stage) {
+            remainingMs = totalQuestions * (QUESTION_DURATION_MS + ROUND_DURATION_MS);
+        } else if (galaState.stage === "results") {
+            remainingMs = 0;
+        } else if (galaState.stage === "voting") {
+            const thisVotingRemaining = Math.max(0, (galaState.votingExpiresAt || now) - now);
+            remainingMs = thisVotingRemaining + remainingQuestionCount * (QUESTION_DURATION_MS + ROUND_DURATION_MS);
+        } else if (galaState.stage === "question" || galaState.stage === "waiting") {
+            const thisQuestionRemaining = Math.max(0, (galaState.questionExpiresAt || now + QUESTION_DURATION_MS) - now);
+            remainingMs = thisQuestionRemaining + ROUND_DURATION_MS + remainingQuestionCount * (QUESTION_DURATION_MS + ROUND_DURATION_MS);
+        }
+
+        const totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}:${String(seconds).padStart(2, "0")}`;
+    };
+
+    const startGalaFromSpectator = async () => {
+        if (!galaState?.currentCategory) {
+            alert("Primero selecciona una categoría desde Admin.");
+            return;
+        }
+
+        try {
+            const connectedUsersSnapshot = await getDocs(
+                query(collection(db, "users"), where("connected", "==", true))
+            );
+
+            const nomineesSnapshot = await getDocs(
+                query(collection(db, "nominees"), where("categoryId", "==", galaState.currentCategory))
+            );
+
+            const batch = writeBatch(db);
+
+            nomineesSnapshot.forEach((nomineeDoc) => {
+                batch.delete(doc(db, "nominees", nomineeDoc.id));
+            });
+
+            connectedUsersSnapshot.forEach((userDoc) => {
+                const userData = userDoc.data();
+                const nomineeRef = doc(db, "nominees", userDoc.id);
+                batch.set(nomineeRef, {
+                    categoryId: galaState.currentCategory,
+                    userId: userDoc.id,
+                    name: userData.name || "Anónimo",
+                    lastname: userData.lastname || "",
+                    gender: userData.gender || "",
+                    photo: userData.profilePhoto || "",
+                    profilePhoto: userData.profilePhoto || "",
+                    votes: 0,
+                    connected: true,
+                    updatedAt: serverTimestamp(),
+                });
+            });
+
+            await batch.commit();
+
+            await updateDoc(doc(db, "galaState", "state"), {
+                stage: "question",
+                questionStatus: "creating",
+                currentQuestionNumber: 1,
+                totalQuestions: TOTAL_QUESTIONS,
+                currentQuestionChico: null,
+                currentQuestionChica: null,
+                questionExpiresAt: Date.now() + 10000,
+                votingExpiresAt: null,
+                resultsByGender: {},
+                revealModeActive: false,
+                revealQuestionNumber: 1,
+                showPresenter: false,
+                lastActionAt: serverTimestamp(),
+            });
+
+            window.open(`${window.location.origin}/spectator?start=true`, "_blank", "noopener,noreferrer");
+        } catch (error) {
+            console.warn("Error iniciando gala desde spectator:", error);
+            alert("No se pudo iniciar la gala. Inténtalo otra vez.");
+        }
+    };
+
+    const startRevealShow = async () => {
+        await updateDoc(doc(db, "galaState", "state"), {
+            revealModeActive: true,
+            revealQuestionNumber: 1,
+            lastActionAt: serverTimestamp(),
+        });
+
+        window.open(`${window.location.origin}/spectator?show=results`, "_blank", "noopener,noreferrer");
+    };
+
+    const goToNextRevealQuestion = async () => {
+        const totalQuestions = galaState?.totalQuestions || TOTAL_QUESTIONS;
+        if (revealQuestionNumber >= totalQuestions) {
+            await updateDoc(doc(db, "galaState", "state"), {
+                revealModeActive: false,
+                lastActionAt: serverTimestamp(),
+            });
+            return;
+        }
+
+        await updateDoc(doc(db, "galaState", "state"), {
+            revealQuestionNumber: revealQuestionNumber + 1,
+            lastActionAt: serverTimestamp(),
+        });
     };
 
     const isUserConnected = (user) => {
@@ -41,6 +194,90 @@ export default function Spectator() {
         const lastSeenDate = user.lastSeen.toDate ? user.lastSeen.toDate() : new Date(user.lastSeen);
         return currentTime.getTime() - lastSeenDate.getTime() <= 15000;
     };
+
+    const rankedGroupsAsc = useMemo(
+        () => [...(revealResult?.rankingGroups || [])].sort((a, b) => (a.votes || 0) - (b.votes || 0)),
+        [revealResult]
+    );
+
+    const allRevealNominees = useMemo(() => {
+        const fromRanking = rankedGroupsAsc.flatMap((group) => group.nominees || []);
+        if (fromRanking.length) return fromRanking;
+
+        return nominees.map((nominee) => ({
+            id: nominee.id,
+            name: nominee.name || "Anónimo",
+            profilePhoto: nominee.profilePhoto || nominee.photo || "",
+            votes: Number(nominee.votes || 0),
+        }));
+    }, [rankedGroupsAsc, nominees]);
+
+    const effectiveGroupsAsc = useMemo(() => {
+        if (rankedGroupsAsc.length) return rankedGroupsAsc;
+
+        const grouped = allRevealNominees.reduce((acc, nominee) => {
+            const votes = Number(nominee.votes || 0);
+            if (!acc[votes]) acc[votes] = [];
+            acc[votes].push(nominee);
+            return acc;
+        }, {});
+
+        return Object.entries(grouped)
+            .map(([votes, nomineesInGroup]) => ({
+                votes: Number(votes),
+                nominees: nomineesInGroup,
+            }))
+            .sort((a, b) => (a.votes || 0) - (b.votes || 0));
+    }, [rankedGroupsAsc, allRevealNominees]);
+
+    const showSequence = useMemo(() => {
+        const groupsAsc = effectiveGroupsAsc;
+        if (!groupsAsc.length) return [];
+
+        if (groupsAsc.length <= 2) {
+            return [{
+                type: "finalTwo",
+                groups: groupsAsc,
+            }];
+        }
+
+        const singles = groupsAsc.slice(0, -2).map((group, idx) => ({
+            type: "single",
+            group,
+            rankLabel: `PUESTO ${groupsAsc.length - idx}`,
+        }));
+
+        return [
+            ...singles,
+            {
+                type: "finalTwo",
+                groups: groupsAsc.slice(-2),
+            },
+        ];
+    }, [effectiveGroupsAsc]);
+
+    useEffect(() => {
+        if (!isShowScreen || !isRevealModeActive) return;
+
+        setShowBlockIndex(-1);
+        if (!showSequence.length) return;
+
+        const introTimer = setTimeout(() => {
+            setShowBlockIndex(0);
+        }, 1600);
+
+        const interval = setInterval(() => {
+            setShowBlockIndex((prev) => {
+                if (prev >= showSequence.length - 1) return prev;
+                return prev + 1;
+            });
+        }, 3200);
+
+        return () => {
+            clearTimeout(introTimer);
+            clearInterval(interval);
+        };
+    }, [isShowScreen, isRevealModeActive, showSequence, revealQuestionNumber]);
 
     // Hora actual en tiempo real
     useEffect(() => {
@@ -164,6 +401,177 @@ export default function Spectator() {
             setPresenter(sorted[0]); // el menos votado
         }
     }, [galaState, nominees]);
+
+    if (isShowScreen) {
+        const activeBlock = showBlockIndex >= 0 ? showSequence[showBlockIndex] : null;
+        const totalQuestions = galaState?.totalQuestions || TOTAL_QUESTIONS;
+
+        return (
+            <div
+                style={{
+                    minHeight: "100vh",
+                    padding: "30px 24px",
+                    color: "white",
+                    textAlign: "center",
+                    background: "radial-gradient(circle at 20% 20%, rgba(255,215,0,0.2), transparent 35%), radial-gradient(circle at 80% 10%, rgba(59,130,246,0.25), transparent 30%), linear-gradient(140deg, #070b16, #111827, #1e293b)",
+                    overflow: "hidden",
+                }}
+            >
+                <style>
+                    {`
+                    @keyframes cinematicFade {
+                        from { opacity: 0; transform: translateY(24px) scale(0.96); }
+                        to { opacity: 1; transform: translateY(0) scale(1); }
+                    }
+                    @keyframes nomineePop {
+                        0% { opacity: 0; transform: translateY(22px) scale(0.9); }
+                        70% { opacity: 1; transform: translateY(-4px) scale(1.04); }
+                        100% { opacity: 1; transform: translateY(0) scale(1); }
+                    }
+                    @keyframes trophyGlow {
+                        0% { box-shadow: 0 0 18px rgba(250,204,21,0.35); }
+                        50% { box-shadow: 0 0 42px rgba(250,204,21,0.85); }
+                        100% { box-shadow: 0 0 18px rgba(250,204,21,0.35); }
+                    }
+                    `}
+                </style>
+
+                <h1 style={{ margin: 0, color: "#facc15", fontSize: "54px", letterSpacing: "0.06em", textShadow: "0 0 28px rgba(250,204,21,0.5)" }}>
+                    SHOW DE GANADORES
+                </h1>
+                <p style={{ margin: "8px 0 0", fontSize: "22px", color: "#bfdbfe", fontWeight: 800 }}>
+                    Pregunta {revealQuestionNumber}
+                </p>
+
+                <div style={{ margin: "20px auto 0", maxWidth: "1200px", minHeight: "520px", background: "rgba(15,23,42,0.72)", border: "1px solid rgba(255,255,255,0.16)", borderRadius: "24px", padding: "24px" }}>
+                    {(!isRevealModeActive || (!revealResult && !allRevealNominees.length)) && (
+                        <div style={{ marginTop: "100px", animation: "cinematicFade 1s ease" }}>
+                            <p style={{ margin: 0, fontSize: "34px", fontWeight: 900, color: "#f8fafc" }}>CARGANDO SHOW...</p>
+                        </div>
+                    )}
+
+                    {isRevealModeActive && allRevealNominees.length > 0 && showBlockIndex < 0 && (
+                        <div style={{ marginTop: "100px", animation: "cinematicFade 1.1s ease" }}>
+                            <p style={{ margin: 0, fontSize: "46px", fontWeight: 900, color: "#fde68a" }}>NOMINADOS</p>
+                            <p style={{ margin: "10px 0 0", fontSize: "22px", color: "#cbd5e1" }}>Comienza la revelacion...</p>
+                            <div style={{ marginTop: "24px", display: "flex", gap: "14px", justifyContent: "center", flexWrap: "wrap" }}>
+                                {allRevealNominees.map((nominee, idx) => (
+                                    <div key={nominee.id || idx} style={{ width: "130px", animation: `nomineePop 0.7s ease ${idx * 0.05}s both` }}>
+                                        <img
+                                            src={nominee.profilePhoto ? `https://gala-backend.franrvguijo.workers.dev/image/${nominee.profilePhoto}` : "https://via.placeholder.com/130?text=No+img"}
+                                            alt={nominee.name}
+                                            style={{ width: "130px", height: "130px", borderRadius: "16px", objectFit: "cover", border: "1px solid rgba(255,255,255,0.3)" }}
+                                            onError={(event) => {
+                                                event.currentTarget.onerror = null;
+                                                event.currentTarget.src = "https://via.placeholder.com/130?text=No+img";
+                                            }}
+                                        />
+                                        <p style={{ margin: "7px 0 0", fontSize: "14px", fontWeight: 800, color: "#ffffff" }}>
+                                            {nominee.name}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeBlock?.type === "single" && (
+                        <div style={{ animation: "cinematicFade 0.9s ease" }}>
+                            <p style={{ margin: "0 0 12px", fontSize: "40px", color: "#fbbf24", fontWeight: 900 }}>{activeBlock.rankLabel}</p>
+                            <p style={{ margin: "0 0 20px", fontSize: "22px", color: "#e2e8f0" }}>{activeBlock.group.votes} votos</p>
+                            <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap" }}>
+                                {activeBlock.group.nominees.map((nominee, idx) => (
+                                    <div key={nominee.id} style={{ width: "170px", animation: `nomineePop 0.8s ease ${idx * 0.08}s both` }}>
+                                        <img
+                                            src={nominee.profilePhoto ? `https://gala-backend.franrvguijo.workers.dev/image/${nominee.profilePhoto}` : "https://via.placeholder.com/170?text=No+img"}
+                                            alt={nominee.name}
+                                            style={{ width: "170px", height: "170px", borderRadius: "22px", objectFit: "cover", border: "2px solid rgba(255,255,255,0.3)" }}
+                                            onError={(event) => {
+                                                event.currentTarget.onerror = null;
+                                                event.currentTarget.src = "https://via.placeholder.com/170?text=No+img";
+                                            }}
+                                        />
+                                        <p style={{ margin: "10px 0 0", fontSize: "18px", fontWeight: 800 }}>{nominee.name}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeBlock?.type === "finalTwo" && (
+                        <div style={{ animation: "cinematicFade 1s ease" }}>
+                            <p style={{ margin: "0 0 14px", fontSize: "40px", color: "#fef08a", fontWeight: 900 }}>GRAN FINAL: PUESTO 1 Y 2</p>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "16px" }}>
+                                {activeBlock.groups.map((group, groupIdx) => (
+                                    <div
+                                        key={`${groupIdx}-${group.votes}`}
+                                        style={{
+                                            background: groupIdx === activeBlock.groups.length - 1 ? "rgba(82,58,10,0.42)" : "rgba(30,41,59,0.65)",
+                                            border: groupIdx === activeBlock.groups.length - 1 ? "2px solid rgba(250,204,21,0.55)" : "1px solid rgba(255,255,255,0.2)",
+                                            borderRadius: "18px",
+                                            padding: "16px",
+                                        }}
+                                    >
+                                        <p style={{ margin: "0 0 10px", color: groupIdx === activeBlock.groups.length - 1 ? "#fde68a" : "#bfdbfe", fontWeight: 900, fontSize: "24px" }}>
+                                            {groupIdx === activeBlock.groups.length - 1 ? "PUESTO 1" : "PUESTO 2"}
+                                        </p>
+                                        <p style={{ margin: "0 0 14px", color: "#e2e8f0", fontWeight: 700 }}>{group.votes} votos</p>
+                                        <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+                                            {group.nominees.map((nominee) => (
+                                                <div key={nominee.id} style={{ width: groupIdx === activeBlock.groups.length - 1 ? "250px" : "180px" }}>
+                                                    <img
+                                                        src={nominee.profilePhoto ? `https://gala-backend.franrvguijo.workers.dev/image/${nominee.profilePhoto}` : "https://via.placeholder.com/200?text=No+img"}
+                                                        alt={nominee.name}
+                                                        style={{
+                                                            width: groupIdx === activeBlock.groups.length - 1 ? "250px" : "180px",
+                                                            height: groupIdx === activeBlock.groups.length - 1 ? "250px" : "180px",
+                                                            borderRadius: groupIdx === activeBlock.groups.length - 1 ? "28px" : "20px",
+                                                            objectFit: "cover",
+                                                            animation: groupIdx === activeBlock.groups.length - 1 ? "trophyGlow 2s infinite ease-in-out" : "none",
+                                                        }}
+                                                        onError={(event) => {
+                                                            event.currentTarget.onerror = null;
+                                                            event.currentTarget.src = "https://via.placeholder.com/200?text=No+img";
+                                                        }}
+                                                    />
+                                                    <p style={{ margin: "10px 0 0", fontSize: groupIdx === activeBlock.groups.length - 1 ? "28px" : "20px", fontWeight: 900 }}>
+                                                        {nominee.name}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <div style={{ marginTop: "18px", display: "flex", gap: "10px", justifyContent: "center", flexWrap: "wrap" }}>
+                    <button
+                        onClick={goToNextRevealQuestion}
+                        disabled={!isRevealModeActive}
+                        style={{
+                            padding: "12px 24px",
+                            borderRadius: "999px",
+                            border: "none",
+                            background: !isRevealModeActive ? "#64748b" : "#22c55e",
+                            color: "#052e16",
+                            fontSize: "16px",
+                            fontWeight: 900,
+                            cursor: !isRevealModeActive ? "not-allowed" : "pointer",
+                        }}
+                    >
+                        {revealQuestionNumber >= totalQuestions ? "FINALIZAR SHOW" : "SIGUIENTE PREGUNTA"}
+                    </button>
+                </div>
+
+                <p style={{ marginTop: "10px", color: "#94a3b8", fontWeight: 700 }}>
+                    Progreso show: {revealQuestionNumber}/{totalQuestions}
+                </p>
+            </div>
+        );
+    }
 
 
     return (
@@ -300,7 +708,7 @@ export default function Spectator() {
                         </div>
 
                         <button
-                            onClick={() => window.open(`${window.location.origin}/spectator?start=true`, "_blank", "noopener,noreferrer")}
+                            onClick={startGalaFromSpectator}
                             style={{
                                 padding: "14px 28px",
                                 fontSize: "16px",
@@ -375,25 +783,32 @@ export default function Spectator() {
                         minHeight: "100vh",
                         display: "flex",
                         flexDirection: "column",
-                        justifyContent: "center",
+                        justifyContent: "flex-start",
                         alignItems: "center",
-                        gap: "22px",
+                        gap: "16px",
                         color: "white",
-                        padding: "40px",
+                        padding: "16px 40px 40px",
                         textAlign: "center",
                         animation: "fadeIn 0.8s ease",
                     }}
                 >
                     {/* USUARIOS CONECTADOS - ESTILO ZOOM */}
+<h2 style={{ margin: "0", color: "#ffffff", textShadow: "0 0 10px rgba(0,0,0,0.45)" }}>
+    USUARIOS CONECTADOS
+</h2>
 <div
     style={{
         display: "flex",
         gap: "14px",
-        padding: "10px 20px",
-        background: "rgba(0,0,0,0.35)",
-        borderBottom: "1px solid rgba(255,255,255,0.15)",
+        width: "100%",
+        maxWidth: "980px",
+        padding: "12px 20px",
+        background: "rgba(7, 12, 26, 0.72)",
+        border: "1px solid rgba(255,255,255,0.18)",
+        borderRadius: "16px",
         overflowX: "auto",
         whiteSpace: "nowrap",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
     }}
 >
     {users.map((user) => {
@@ -458,111 +873,128 @@ export default function Spectator() {
         );
     })}
 </div>
-                    <div style={{ maxWidth: "720px" }}>
+                    <div style={{ maxWidth: "900px" }}>
                         <h1
                             style={{
-                                fontSize: "52px",
+                                fontSize: "62px",
                                 margin: 0,
                                 color: "gold",
-                                textShadow: "0 0 25px rgba(255,215,0,0.7)",
+                                letterSpacing: "0.03em",
+                                textShadow: "0 0 30px rgba(255,215,0,0.72)",
                             }}
                         >
-                            {isQuestionPhase ? "Fase de pregunta" : isWaitingPhase ? "Preparando votación" : "HORA DE VOTACIONES"}
+                            HORA DE VOTACIONES
                         </h1>
 
                         <p
                             style={{
-                                fontSize: "22px",
-                                margin: "18px 0 0",
+                                fontSize: "24px",
+                                margin: "12px 0 0",
                                 lineHeight: "1.4",
                                 textShadow: "0 0 14px rgba(0,0,0,0.25)",
                             }}
                         >
-                            {isQuestionPhase
-                                ? `Pregunta para la ronda ${currentQuestionGender}`
-                                : isWaitingPhase
-                                    ? `Esperando inicio de votación para ${currentQuestionGender}`
-                                    : "Mirad vuestro dispositivo para votar, y disfruta!!"}
+                            Mirad vuestro dispositivo para votar y disfrutad de la gala.
                         </p>
                     </div>
 
                     <div
                         style={{
                             width: "100%",
-                            maxWidth: "680px",
-                            padding: "28px",
+                            maxWidth: "980px",
+                            padding: "22px",
                             borderRadius: "26px",
-                            background: "rgba(255,255,255,0.08)",
-                            border: "1px solid rgba(255,255,255,0.18)",
+                            background: "rgba(12, 18, 36, 0.92)",
+                            border: "1px solid rgba(255,255,255,0.22)",
                             backdropFilter: "blur(14px)",
                             boxShadow: "0 0 60px rgba(0,0,0,0.25)",
+                            color: "#f8fafc",
                         }}
                     >
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: "24px", flexWrap: "wrap" }}>
-                            <div>
-                                <p style={{ margin: "0 0 6px", opacity: 0.8 }}>Hora actual</p>
-                                <p style={{ margin: 0, fontSize: "28px", fontWeight: "700" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "14px" }}>
+                            <div style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "16px", padding: "16px" }}>
+                                <p style={{ margin: "0 0 6px", opacity: 0.85, color: "#cbd5e1", fontWeight: 600 }}>Hora actual</p>
+                                <p style={{ margin: 0, fontSize: "36px", fontWeight: "900", color: "#ffffff" }}>
                                     {currentTime.toLocaleTimeString()}
                                 </p>
                             </div>
 
-                            <div>
-                                <p style={{ margin: "0 0 6px", opacity: 0.8 }}>Ronda</p>
-                                <p style={{ margin: 0, fontSize: "28px", fontWeight: "700" }}>
-                                    {currentQuestionGender || "Sin ronda"}
+                            <div style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "16px", padding: "16px" }}>
+                                <p style={{ margin: "0 0 6px", opacity: 0.85, color: "#cbd5e1", fontWeight: 600 }}>Estado</p>
+                                <p style={{ margin: 0, fontSize: "36px", fontWeight: "900", color: "#fbbf24" }}>
+                                    {getGalaStatusLabel()}
                                 </p>
                             </div>
 
-                            <div>
-                                <p style={{ margin: "0 0 6px", opacity: 0.8 }}>Categoría</p>
-                                <p style={{ margin: 0, fontSize: "28px", fontWeight: "700" }}>
-                                    {currentCategory || "Sin categoría"}
+                            <div style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "16px", padding: "16px" }}>
+                                <p style={{ margin: "0 0 6px", opacity: 0.85, color: "#cbd5e1", fontWeight: 600 }}>Hora estimada gala</p>
+                                <p style={{ margin: 0, fontSize: "36px", fontWeight: "900", color: "#22d3ee" }}>
+                                    {getEstimatedGalaTime()}
+                                </p>
+                                <p style={{ margin: "8px 0 0", fontSize: "15px", color: "#a5f3fc", fontWeight: 700 }}>
+                                    Quedan aprox: {getRemainingGalaCountdown()}
                                 </p>
                             </div>
 
-                            <div style={{ flex: "1 1 100%", minWidth: "280px" }}>
-                                <p style={{ margin: "0 0 6px", opacity: 0.8 }}>Reglas rápidas</p>
-                                <p style={{ margin: 0, fontSize: "16px", lineHeight: "1.55", fontWeight: "500" }}>
+                            <div style={{ gridColumn: "1 / -1", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "16px", padding: "16px" }}>
+                                <p style={{ margin: "0 0 6px", opacity: 0.85, color: "#cbd5e1", fontWeight: 600 }}>Reglas rápidas</p>
+                                <p style={{ margin: 0, fontSize: "17px", lineHeight: "1.55", fontWeight: "600", color: "#ffffff" }}>
                                     - Cada votación dura 2:30.
-                                    <br />- Debes votar una vez en cada género chicho/chica.
+                                    <br />- Debes votar una vez en cada género chico/chica.
                                     <br />- Si no votas, se cuenta como voto en blanco y gana automáticamente el candidato con más votos.
                                     <br />- El menos votado será el encargado de entregar el trofeo si aplica.
                                 </p>
                             </div>
 
-                            <div>
-                                <p style={{ margin: "0 0 6px", opacity: 0.8 }}>Estado</p>
-                                <p style={{ margin: 0, fontSize: "28px", fontWeight: "700" }}>
-                                    {isVotingActive ? "Votación activa" : isQuestionPhase ? "Creando pregunta" : isWaitingPhase ? "Esperando votación" : "Pausado por admin"}
-                                </p>
-                            </div>
-                        </div>
-                        {currentQuestionText && (
-                            <div style={{ marginTop: "16px", color: "white", textAlign: "left" }}>
-                                <p style={{ margin: 0, opacity: 0.8 }}>Pregunta actual</p>
-                                <p style={{ margin: "6px 0 0", fontSize: "20px", fontWeight: "700" }}>
-                                    {currentQuestionText}
-                                </p>
-                            </div>
-                        )}
-                    </div>
+                            {galaState?.stage === "results" && (
+                                <div style={{ gridColumn: "1 / -1", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "16px", padding: "20px" }}>
+                                    <p style={{ margin: "0 0 12px", fontSize: "24px", fontWeight: 900, color: "#fef08a" }}>
+                                        Votaciones finalizadas
+                                    </p>
 
-                    {!isVotingActive && (
-                        <div
-                            style={{
-                                maxWidth: "680px",
-                                padding: "20px 24px",
-                                borderRadius: "20px",
-                                background: "rgba(255, 69, 0, 0.14)",
-                                border: "1px solid rgba(255, 69, 0, 0.25)",
-                                color: "#ffe8d6",
-                            }}
-                        >
-                            <p style={{ margin: 0, fontSize: "18px" }}>
-                                La votación está pausada desde el panel de admin. El admin puede reanudarla cuando quiera.
-                            </p>
+                                    {!isRevealModeActive ? (
+                                        <button
+                                            onClick={startRevealShow}
+                                            style={{
+                                                padding: "14px 30px",
+                                                borderRadius: "999px",
+                                                border: "none",
+                                                background: "gold",
+                                                color: "#111827",
+                                                fontSize: "18px",
+                                                fontWeight: 900,
+                                                cursor: "pointer",
+                                                boxShadow: "0 0 18px rgba(255,215,0,0.45)",
+                                            }}
+                                        >
+                                            REVELAR GANADORES
+                                        </button>
+                                    ) : (
+                                        <div style={{ marginTop: "8px" }}>
+                                            <p style={{ margin: "0 0 10px", color: "#93c5fd", fontWeight: 900, fontSize: "20px" }}>
+                                                Show activo en pestaña aparte
+                                            </p>
+                                            <button
+                                                onClick={() => window.open(`${window.location.origin}/spectator?show=results`, "_blank", "noopener,noreferrer")}
+                                                style={{
+                                                    padding: "12px 24px",
+                                                    borderRadius: "999px",
+                                                    border: "none",
+                                                    background: "#38bdf8",
+                                                    color: "#082f49",
+                                                    fontSize: "16px",
+                                                    fontWeight: 900,
+                                                    cursor: "pointer",
+                                                }}
+                                            >
+                                                ABRIR PANTALLA SHOW
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
-                    )}
+                    </div>
                 </div>
 
             ) : (

@@ -1,14 +1,14 @@
 export const QUESTION_BANK = [
-  { id: 1, gender: "chico", text: "¿Quién es el más chismoso?" },
-  { id: 2, gender: "chica", text: "¿Quién es la más chismosa?" },
-  { id: 3, gender: "chico", text: "¿Quién es el más ligón?" },
-  { id: 4, gender: "chica", text: "¿Quién es la más ligona?" },
-  { id: 5, gender: "chico", text: "¿Quién es el más fiestero?" },
-  { id: 6, gender: "chica", text: "¿Quién es la más fiestera?" },
-  { id: 7, gender: "chico", text: "¿Quién es el más dramático?" },
-  { id: 8, gender: "chica", text: "¿Quién es la más dramática?" },
-  { id: 9, gender: "chico", text: "¿Quién es el más despistado?" },
-  { id: 10, gender: "chica", text: "¿Quién es la más despistada?" },
+  { id: 1, gender: "all", text: "¿Quién es la persona más chismosa?" },
+  { id: 2, gender: "all", text: "¿Quién es la persona más ligona?" },
+  { id: 3, gender: "all", text: "¿Quién es la persona más fiestera?" },
+  { id: 4, gender: "all", text: "¿Quién es la persona más dramática?" },
+  { id: 5, gender: "all", text: "¿Quién es la persona más despistada?" },
+  { id: 6, gender: "all", text: "¿Quién tiene la mejor sonrisa?" },
+  { id: 7, gender: "all", text: "¿Quién sería mejor presentador o presentadora?" },
+  { id: 8, gender: "all", text: "¿Quién tiene más estilo?" },
+  { id: 9, gender: "all", text: "¿Quién siempre anima al grupo?" },
+  { id: 10, gender: "all", text: "¿Quién se merece un aplauso extra hoy?" },
 ];
 
 const normalizeText = (text) =>
@@ -26,8 +26,10 @@ export const findDuplicateQuestion = (text) => {
   );
 };
 
-export const getQuestionsForGender = (gender) =>
-  QUESTION_BANK.filter((q) => q.gender === gender);
+export const getQuestionsForGender = (gender) => {
+  if (!gender) return QUESTION_BANK;
+  return QUESTION_BANK.filter((q) => q.gender === "all" || q.gender === gender);
+};
 
 export const isSameQuestion = (textA, textB) => {
   if (!textA || !textB) return false;

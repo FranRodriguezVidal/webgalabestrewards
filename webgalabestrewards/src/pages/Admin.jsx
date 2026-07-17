@@ -8,6 +8,15 @@ export default function Admin() {
   const [galaState, setGalaState] = useState(null);
   const [users, setUsers] = useState([]);
   const [selectedQuestionId, setSelectedQuestionId] = useState(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Hora actual en tiempo real
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Cargar categorías en tiempo real
   useEffect(() => {
@@ -58,13 +67,14 @@ export default function Admin() {
     await updateDoc(doc(db, "galaState", "state"), {
       stage: "question",
       currentCategory: galaState?.currentCategory || categories[0]?.id || null,
-      currentGenderRound: "chico",
       questionStatus: "creating",
-      currentQuestion: null,
-      questionExpiresAt: Date.now() + 180000,
+      currentQuestionNumber: 1,
+      totalQuestions: 5,
+      currentQuestionChico: null,
+      currentQuestionChica: null,
+      questionExpiresAt: Date.now() + 10000,
       votingExpiresAt: null,
       resultsByGender: {},
-      roundsCompleted: [],
       showPresenter: false,
       lastActionAt: serverTimestamp(),
     });
@@ -107,6 +117,10 @@ export default function Admin() {
   const openVoting = async () => {
     if (!galaState?.currentCategory) return;
 
+    // Obtener usuarios conectados como nominados
+    const connectedUsers = users.filter(user => user.connected === true);
+    
+    // Crear nominados a partir de usuarios conectados
     const nomineesQuery = query(
       collection(db, "nominees"),
       where("categoryId", "==", galaState.currentCategory)
@@ -238,6 +252,16 @@ export default function Admin() {
     await deleteDoc(doc(db, "users", userId));
   };
 
+  // Calcular tiempo restante de votación
+  const getVotingTimeRemaining = () => {
+    if (!galaState?.votingExpiresAt) return null;
+    const remaining = galaState.votingExpiresAt - currentTime.getTime();
+    if (remaining <= 0) return "0:00";
+    const minutes = Math.floor(remaining / 60000);
+    const seconds = Math.floor((remaining % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
   if (!galaState) return <p>Cargando...</p>;
 
   const currentQuestionText = galaState.currentQuestion?.text || "(ninguna seleccionada)";
@@ -257,6 +281,7 @@ export default function Admin() {
         .button-primary { background: linear-gradient(135deg, #38bdf8, #6366f1); color: white; }
         .button-secondary { background: rgba(255,255,255,0.08); color: #e2e8f0; }
         .button-danger { background: #ef4444; color: white; }
+        .button-success { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; }
         .user-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 16px; margin-bottom: 14px; }
         .question-card { background: rgba(255,255,255,0.06); border: 1px dashed rgba(148,163,184,0.45); border-radius: 20px; padding: 18px; margin-bottom: 14px; }
         .question-button { width: 100%; text-align: left; }
@@ -272,8 +297,12 @@ export default function Admin() {
           <div style={{ fontSize: "13px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.12em" }}>Estado actual</div>
           <div style={{ marginTop: "10px", fontSize: "16px" }}><strong>Categoría:</strong> {galaState.currentCategory || "Sin categoría"}</div>
           <div style={{ marginTop: "8px", fontSize: "16px" }}><strong>Etapa:</strong> {galaState.stage}</div>
-          <div style={{ marginTop: "8px", fontSize: "16px" }}><strong>Ronda:</strong> {currentQuestionGender}</div>
           <div style={{ marginTop: "8px", fontSize: "16px" }}><strong>Pregunta:</strong> {currentQuestionText}</div>
+          {galaState.stage === "voting" && galaState.votingExpiresAt && (
+            <div style={{ marginTop: "8px", fontSize: "16px", color: "#fbbf24" }}>
+              <strong>Tiempo votación:</strong> {getVotingTimeRemaining()}
+            </div>
+          )}
         </div>
       </div>
 
@@ -306,7 +335,7 @@ export default function Admin() {
                 </div>
               ))
             ) : (
-              <div style={{ color: "#94a3b8" }}>No hay preguntas para esta ronda. Selecciona primero una ronda de género.</div>
+              <div style={{ color: "#94a3b8" }}>No hay preguntas para esta ronda.</div>
             )}
           </div>
 
@@ -314,12 +343,15 @@ export default function Admin() {
             <h2>Control principal</h2>
             <div className="button-row">
               <button className="admin-button button-primary" onClick={startGala}>Iniciar gala</button>
-              <button className="admin-button button-secondary" onClick={() => startQuestionRound("chico")}>Ronda chico</button>
-              <button className="admin-button button-secondary" onClick={() => startQuestionRound("chica")}>Ronda chica</button>
-              <button className="admin-button button-primary" onClick={openVoting}>Abrir votaciones</button>
-              {galaState?.stage === "voting" && <button className="admin-button button-secondary" onClick={pauseVoting}>Pausar</button>}
-              {galaState?.stage === "paused" && <button className="admin-button button-primary" onClick={resumeVoting}>Reanudar</button>}
-              <button className="admin-button button-danger" onClick={closeVoting}>Cerrar votaciones</button>
+            </div>
+            <p style={{ color: "#94a3b8", marginTop: "10px" }}>
+              La gala avanza en automático. Los controles de abajo son solo para emergencia.
+            </p>
+            <div className="button-row" style={{ marginTop: "10px" }}>
+              <button className="admin-button button-success" onClick={openVoting}>Emergencia: abrir votación</button>
+              {galaState?.stage === "voting" && <button className="admin-button button-secondary" onClick={pauseVoting}>Emergencia: pausar</button>}
+              {galaState?.stage === "paused" && <button className="admin-button button-primary" onClick={resumeVoting}>Emergencia: reanudar</button>}
+              <button className="admin-button button-danger" onClick={closeVoting}>Emergencia: cerrar votación</button>
             </div>
           </div>
         </div>

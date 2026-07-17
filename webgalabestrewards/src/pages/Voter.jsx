@@ -6,6 +6,7 @@ import {
   onSnapshot,
   doc,
   updateDoc,
+  setDoc,
   getDoc,
   deleteDoc,
   serverTimestamp,
@@ -16,22 +17,24 @@ import {
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
-import { findDuplicateQuestion, getQuestionsForGender } from "../questions";
+import { getQuestionsForGender } from "../questions";
 
 
 export default function Voter() {
+  const TOTAL_QUESTIONS = 5;
   const [userId, setUserId] = useState(null);
   const [galaState, setGalaState] = useState(null);
   const [nominees, setNominees] = useState([]);
+  const [connectedCandidates, setConnectedCandidates] = useState([]);
   const [hasVoted, setHasVoted] = useState(false);
   const [hasVotedChico, setHasVotedChico] = useState(false);
   const [hasVotedChica, setHasVotedChica] = useState(false);
-  const [questionText, setQuestionText] = useState("");
-  const [questionError, setQuestionError] = useState("");
   const navigate = useNavigate();
-  const questionTextInState = galaState?.currentQuestion?.text || "";
-  const questionGender = galaState?.currentGenderRound || "";
-  const isQuestionExpired = galaState?.questionExpiresAt && Date.now() > galaState.questionExpiresAt;
+  const questionChicoText = galaState?.currentQuestionChico?.text || "";
+  const questionChicaText = galaState?.currentQuestionChica?.text || "";
+  const questionDisplayText = questionChicoText || questionChicaText;
+  const currentQuestionNumber = galaState?.currentQuestionNumber || 1;
+  const questionVoteKey = `q${currentQuestionNumber}`;
 
   // Detectar usuario actual
   useEffect(() => {
@@ -115,6 +118,23 @@ export default function Voter() {
     return () => unsubscribe();
   }, [galaState]);
 
+  // Cargar todos los usuarios para votar (sin incluir al usuario actual)
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      collection(db, "users"),
+      (snapshot) => {
+        const list = snapshot.docs
+          .map((item) => ({ id: item.id, ...item.data() }))
+          .filter((user) => user.id !== userId)
+          .sort((a, b) => (a.name || "").localeCompare(b.name || "", "es", { sensitivity: "base" }));
+
+        setConnectedCandidates(list);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [userId]);
+
   // Comprobar si el usuario ya votó en la ronda actual
   useEffect(() => {
     if (!userId || !galaState || !galaState.currentCategory) return;
@@ -125,38 +145,87 @@ export default function Voter() {
         const data = userDoc.data();
         const votedRounds = data.votedRounds || {};
         const categoryRounds = votedRounds[galaState.currentCategory] || {};
-        setHasVotedChico(!!categoryRounds.chico);
-        setHasVotedChica(!!categoryRounds.chica);
-        setHasVoted(!!categoryRounds.chico && !!categoryRounds.chica);
+        const questionVotes = categoryRounds[questionVoteKey] || {};
+        setHasVotedChico(!!questionVotes.chico);
+        setHasVotedChica(!!questionVotes.chica);
+        setHasVoted(!!questionVotes.chico && !!questionVotes.chica);
       }
     };
 
     checkVote();
-  }, [userId, galaState]);
+  }, [userId, galaState, questionVoteKey]);
 
-  // Seleccionar pregunta del banco automático si no se ha definido ninguna
+  // Si falta un género en candidatos, marcar ese voto como completado automáticamente
   useEffect(() => {
-    if (!galaState || galaState.stage !== "question" || galaState.currentQuestion) return;
-    if (!galaState.currentGenderRound) return;
+    if (!userId || !galaState || galaState.stage !== "voting" || !galaState.currentCategory) return;
+    if (!connectedCandidates.length) return;
 
-    const questionsForGender = getQuestionsForGender(galaState.currentGenderRound);
-    if (!questionsForGender.length) return;
+    const hasChicoCandidates = connectedCandidates.some((candidate) => {
+      const gender = (candidate.gender || "").toLowerCase();
+      return gender === "male" || gender === "chico";
+    });
+    const hasChicaCandidates = connectedCandidates.some((candidate) => {
+      const gender = (candidate.gender || "").toLowerCase();
+      return gender === "female" || gender === "chica";
+    });
 
-    const chosenQuestion = questionsForGender[Math.floor(Math.random() * questionsForGender.length)];
+    const applyAutoPass = async () => {
+      const updates = {};
+
+      if (!hasChicoCandidates && !hasVotedChico) {
+        updates[`votedRounds.${galaState.currentCategory}.${questionVoteKey}.chico`] = true;
+        setHasVotedChico(true);
+      }
+
+      if (!hasChicaCandidates && !hasVotedChica) {
+        updates[`votedRounds.${galaState.currentCategory}.${questionVoteKey}.chica`] = true;
+        setHasVotedChica(true);
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await updateDoc(doc(db, "users", userId), updates);
+      }
+
+      const finalChico = hasVotedChico || !hasChicoCandidates;
+      const finalChica = hasVotedChica || !hasChicaCandidates;
+      setHasVoted(finalChico && finalChica);
+    };
+
+    applyAutoPass().catch((error) => {
+      console.warn("Error aplicando auto-pase por género faltante:", error);
+    });
+  }, [userId, galaState, connectedCandidates, hasVotedChico, hasVotedChica, questionVoteKey]);
+
+  // Crear automáticamente preguntas chico/chica cuando inicia la ronda
+  useEffect(() => {
+    if (!galaState || galaState.stage !== "question") return;
+    if (galaState.currentQuestionChico && galaState.currentQuestionChica) return;
+
+    const questions = getQuestionsForGender("all");
+    if (!questions.length) return;
+
+    const chosenQuestion = questions[Math.floor(Math.random() * questions.length)];
 
     const publishQuestion = async () => {
       try {
         await updateDoc(doc(db, "galaState", "state"), {
-          currentQuestion: {
+          currentQuestionChico: {
             text: chosenQuestion.text,
-            gender: chosenQuestion.gender,
+            gender: "chico",
             createdBy: "system",
             createdAt: Date.now(),
-            expiresAt: Date.now() + 150000,
+            expiresAt: Date.now() + 10000,
+          },
+          currentQuestionChica: {
+            text: chosenQuestion.text,
+            gender: "chica",
+            createdBy: "system",
+            createdAt: Date.now(),
+            expiresAt: Date.now() + 10000,
           },
           stage: "waiting",
           questionStatus: "waiting",
-          questionExpiresAt: Date.now() + 150000,
+          questionExpiresAt: Date.now() + 10000,
           votingExpiresAt: null,
           lastActionAt: serverTimestamp(),
         });
@@ -168,9 +237,9 @@ export default function Voter() {
     publishQuestion();
   }, [galaState]);
 
-  // Abrir votación automáticamente cuando la pregunta expire
+  // Abrir votación automáticamente cuando termina la pantalla de pregunta
   useEffect(() => {
-    if (!galaState || galaState.stage !== "waiting" || !galaState.currentQuestion || !galaState.questionExpiresAt) return;
+    if (!galaState || galaState.stage !== "waiting" || !galaState.questionExpiresAt) return;
 
     const interval = setInterval(async () => {
       if (Date.now() <= galaState.questionExpiresAt) return;
@@ -191,75 +260,143 @@ export default function Voter() {
     return () => clearInterval(interval);
   }, [galaState]);
 
-  // Avanzar automáticamente de chico a chica después de resultados
-  useEffect(() => {
-    if (!galaState || galaState.stage !== "results" || galaState.currentGenderRound !== "chico") return;
-    const completedRounds = galaState.roundsCompleted || [];
-    if (completedRounds.includes("chico")) return;
-
-    const timeout = setTimeout(async () => {
-      try {
-        await updateDoc(doc(db, "galaState", "state"), {
-          stage: "question",
-          currentGenderRound: "chica",
-          questionStatus: "creating",
-          currentQuestion: null,
-          questionExpiresAt: Date.now() + 150000,
-          votingExpiresAt: null,
-          roundsCompleted: [...completedRounds, "chico"],
-          resultsByGender: {
-            ...(galaState.resultsByGender || {}),
-            chico: {
-              winnerId: galaState.autoWinnerId || null,
-              leastVotedNomineeId: galaState.leastVotedNomineeId || null,
-              question: galaState.currentQuestion?.text || "",
-            },
-          },
-          lastActionAt: serverTimestamp(),
-        });
-      } catch (error) {
-        console.warn("Error avanzando a ronda chica automáticamente:", error);
-      }
-    }, 5000);
-
-    return () => clearTimeout(timeout);
-  }, [galaState]);
-
-  // Cerrar automáticamente la votación cuando expire el temporizador
+  // Cerrar votación automáticamente a los 2m30s o antes si todos votan ambos géneros
   useEffect(() => {
     if (!galaState || galaState.stage !== "voting" || !galaState.votingExpiresAt) return;
 
     const interval = setInterval(async () => {
-      if (Date.now() <= galaState.votingExpiresAt) return;
-      clearInterval(interval);
-
       if (!galaState.currentCategory) return;
 
-      const nomineesQuery = query(
-        collection(db, "nominees"),
-        where("categoryId", "==", galaState.currentCategory)
+      const [nomineesSnapshot, usersSnapshot] = await Promise.all([
+        getDocs(query(collection(db, "nominees"), where("categoryId", "==", galaState.currentCategory))),
+        getDocs(query(collection(db, "users"), where("connected", "==", true))),
+      ]);
+
+      const nomineesList = nomineesSnapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      const connectedUsers = usersSnapshot.docs.map((item) => item.data());
+
+      const hasConnectedChico = connectedUsers.some((user) => {
+        const gender = (user.gender || "").toLowerCase();
+        return gender === "male" || gender === "chico";
+      });
+      const hasConnectedChica = connectedUsers.some((user) => {
+        const gender = (user.gender || "").toLowerCase();
+        return gender === "female" || gender === "chica";
+      });
+
+      const allConnectedVoted = connectedUsers.length > 0 && connectedUsers.every((user) => {
+        const categoryVotes = user.votedRounds?.[galaState.currentCategory] || {};
+        const questionVotes = categoryVotes[questionVoteKey] || {};
+        const chicoDone = !hasConnectedChico || !!questionVotes.chico;
+        const chicaDone = !hasConnectedChica || !!questionVotes.chica;
+        return chicoDone && chicaDone;
+      });
+
+      if (Date.now() <= galaState.votingExpiresAt && !allConnectedVoted) return;
+      clearInterval(interval);
+
+      const chicoNominees = nomineesList.filter((nominee) => {
+        const gender = (nominee.gender || "").toLowerCase();
+        return gender === "chico" || gender === "male";
+      });
+      const chicaNominees = nomineesList.filter((nominee) => {
+        const gender = (nominee.gender || "").toLowerCase();
+        return gender === "chica" || gender === "female";
+      });
+
+      const topChico = [...chicoNominees].sort((a, b) => (b.votes || 0) - (a.votes || 0))[0] || null;
+      const topChica = [...chicaNominees].sort((a, b) => (b.votes || 0) - (a.votes || 0))[0] || null;
+
+      const rankingByVotes = nomineesList.reduce((acc, nominee) => {
+        const votes = Number(nominee.votes || 0);
+        if (!acc[votes]) acc[votes] = [];
+        acc[votes].push({
+          id: nominee.id,
+          name: nominee.name || "Anónimo",
+          lastname: nominee.lastname || "",
+          gender: nominee.gender || "",
+          votes,
+          profilePhoto: nominee.profilePhoto || nominee.photo || "",
+          photo: nominee.photo || nominee.profilePhoto || "",
+        });
+        return acc;
+      }, {});
+
+      const rankingGroups = Object.entries(rankingByVotes)
+        .sort((a, b) => Number(b[0]) - Number(a[0]))
+        .map(([votes, tiedNominees]) => ({
+          votes: Number(votes),
+          nominees: tiedNominees.sort((a, b) =>
+            `${a.name || ""} ${a.lastname || ""}`.localeCompare(`${b.name || ""} ${b.lastname || ""}`, "es", {
+              sensitivity: "base",
+            })
+          ),
+        }));
+
+      const winnersGroup = rankingGroups[0] || { nominees: [] };
+      const lowestGroup = rankingGroups[rankingGroups.length - 1] || { nominees: [] };
+      const presenterIds = lowestGroup.nominees.map((nominee) => nominee.id);
+
+      const totalQuestions = galaState?.totalQuestions || TOTAL_QUESTIONS;
+      const isLastQuestion = currentQuestionNumber >= totalQuestions;
+
+      const baseResults = {
+        ...(galaState.resultsByGender || {}),
+        [questionVoteKey]: {
+          chico: {
+            winnerId: topChico?.id || null,
+            winnerName: topChico?.name || null,
+            votes: topChico?.votes || 0,
+          },
+          chica: {
+            winnerId: topChica?.id || null,
+            winnerName: topChica?.name || null,
+            votes: topChica?.votes || 0,
+          },
+          rankingGroups,
+          winnerIds: winnersGroup.nominees.map((nominee) => nominee.id),
+          presenterIds,
+          categoryId: galaState.currentCategory || null,
+          closedAt: Date.now(),
+        },
+      };
+
+      if (isLastQuestion) {
+        await updateDoc(doc(db, "galaState", "state"), {
+          stage: "results",
+          resultsClosedAt: Date.now(),
+          votingEndedByAllVotes: allConnectedVoted,
+          showPresenter: false,
+          revealModeActive: false,
+          revealQuestionNumber: 1,
+          resultsByGender: baseResults,
+          lastActionAt: serverTimestamp(),
+        });
+        return;
+      }
+
+      await Promise.all(
+        nomineesList.map((nominee) =>
+          updateDoc(doc(db, "nominees", nominee.id), {
+            votes: 0,
+            updatedAt: serverTimestamp(),
+          }).catch(() => null)
+        )
       );
 
-      const snapshot = await getDocs(nomineesQuery);
-      const nomineesList = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      const voteEntries = nomineesList.map((nominee) => ({
-        id: nominee.id,
-        votes: nominee.votes || 0,
-      }));
-
-      const hasVote = voteEntries.some((entry) => entry.votes > 0);
-      const sortedByVotes = [...voteEntries].sort((a, b) => b.votes - a.votes);
-      const sortedByLeast = [...voteEntries].sort((a, b) => a.votes - b.votes);
-      const winnerId = sortedByVotes[0]?.id || null;
-      const leastVotedId = sortedByLeast[0]?.id || null;
-
       await updateDoc(doc(db, "galaState", "state"), {
-        stage: "results",
-        resultsClosedAt: Date.now(),
-        autoDecidedByNoVotes: !hasVote,
-        autoWinnerId: !hasVote ? winnerId : null,
-        leastVotedNomineeId: leastVotedId,
+        stage: "question",
+        questionStatus: "creating",
+        currentQuestionNumber: currentQuestionNumber + 1,
+        currentQuestionChico: null,
+        currentQuestionChica: null,
+        questionExpiresAt: Date.now() + 10000,
+        votingExpiresAt: null,
+        votingEndedByAllVotes: allConnectedVoted,
         showPresenter: false,
+        revealModeActive: false,
+        revealQuestionNumber: currentQuestionNumber,
+        resultsByGender: baseResults,
         lastActionAt: serverTimestamp(),
       });
     }, 1000);
@@ -273,13 +410,13 @@ export default function Voter() {
 
     const getScreenLabel = () => {
       if (galaState.stage === "question") {
-        return questionText ? "Creando pregunta" : "Ronda de pregunta";
+        return questionDisplayText ? "Pregunta lista" : "Ronda de pregunta";
       }
       if (galaState.stage === "waiting") {
-        return questionTextInState ? "Esperando votación" : "Sin pregunta";
+        return "Preparando votación";
       }
       if (galaState.stage === "voting") {
-        return hasVoted ? "Esperando resultados" : "Votando";
+        return hasVoted ? "Esperando resultados" : "Votando (chico/chica)";
       }
       if (galaState.stage === "paused") {
         return "Votación pausada";
@@ -299,26 +436,60 @@ export default function Voter() {
     }).catch((error) => {
       console.warn("Error actualizando pantalla actual del usuario:", error);
     });
-  }, [userId, galaState, questionText, questionTextInState, hasVoted]);
+  }, [userId, galaState, questionDisplayText, hasVoted]);
 
   // Función para votar
-  const vote = async (nomineeId) => {
+  const vote = async (candidate) => {
     if (!userId || hasVoted || galaState.stage !== "voting") return;
-    if (!galaState.currentCategory || !galaState.currentGenderRound) return;
+    if (!galaState.currentCategory) return;
+    if (!candidate || !candidate.id) return;
+    if (candidate.id === userId) return;
 
-    const nominee = nominees.find((n) => n.id === nomineeId);
-    if (!nominee) return;
+    const normalizedGender = (candidate.gender || "").toLowerCase();
+    const nomineeGender = normalizedGender === "female" || normalizedGender === "chica" ? "chica" : (normalizedGender === "male" || normalizedGender === "chico" ? "chico" : null);
+    if (!nomineeGender) {
+      alert("Este nominado no tiene género configurado.");
+      return;
+    }
 
-    await updateDoc(doc(db, "nominees", nomineeId), {
-      votes: increment(1),
-    });
+    if (nomineeGender === "chico" && hasVotedChico) {
+      alert("Ya votaste en la ronda chico.");
+      return;
+    }
+    if (nomineeGender === "chica" && hasVotedChica) {
+      alert("Ya votaste en la ronda chica.");
+      return;
+    }
+
+    await setDoc(
+      doc(db, "nominees", candidate.id),
+      {
+        categoryId: galaState.currentCategory,
+        userId: candidate.id,
+        name: candidate.name || "Anónimo",
+        lastname: candidate.lastname || "",
+        gender: candidate.gender || "",
+        profilePhoto: candidate.profilePhoto || candidate.photo || "",
+        photo: candidate.profilePhoto || candidate.photo || "",
+        votes: increment(1),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
 
     await updateDoc(doc(db, "users", userId), {
       votes: increment(1),
-      [`votedRounds.${galaState.currentCategory}.${galaState.currentGenderRound}`]: true,
+      [`votedRounds.${galaState.currentCategory}.${questionVoteKey}.${nomineeGender}`]: true,
     });
 
-    setHasVoted(true);
+    if (nomineeGender === "chico") {
+      setHasVotedChico(true);
+      setHasVoted(hasVotedChica);
+    } else {
+      setHasVotedChica(true);
+      setHasVoted(hasVotedChico);
+    }
+
     alert("¡Voto registrado!");
   };
 
@@ -345,6 +516,10 @@ export default function Voter() {
   if (!galaState) return <p>Cargando...</p>;
 
   const alreadyJoined = sessionStorage.getItem("voterId");
+  const revealQuestionNumber = galaState?.revealQuestionNumber || 1;
+  const revealQuestionKey = `q${revealQuestionNumber}`;
+  const revealResult = galaState?.resultsByGender?.[revealQuestionKey] || null;
+  const shouldPrepareStage = !!(userId && revealResult?.presenterIds?.includes(userId));
   const creatingQuestion = galaState.stage === "question";
   const waitingForVoting = galaState.stage === "waiting";
   const showingQuestion = ["question", "waiting", "voting"].includes(galaState.stage);
@@ -504,7 +679,7 @@ export default function Voter() {
       {showWaitingForAdmin && (
         <div style={{ marginTop: "80px" }}>
           <h2 style={{ color: "white", marginBottom: "20px" }}>
-            Esperando a que el administrador abra las votaciones…
+            Esperando la siguiente ronda automática…
           </h2>
 
           {/* ANIMACIONES */}
@@ -591,68 +766,19 @@ export default function Voter() {
       {alreadyJoined && creatingQuestion && (
         <div style={{ marginTop: "40px" }}>
           <h2 style={{ marginBottom: "12px" }}>
-            Fase de pregunta ({questionGender})
+            VOTACIÓN NÚMERO 1
           </h2>
-          {questionTextInState ? (
+          {questionDisplayText ? (
             <div style={{ color: "white", fontSize: "18px" }}>
-              <p>Pregunta creada:</p>
-              <p style={{ fontWeight: "bold", marginTop: "6px" }}>{questionTextInState}</p>
-              <p style={{ marginTop: "12px", color: "gold" }}>Esperando para la votación...</p>
+              <p>Pregunta:</p>
+              <p style={{ fontWeight: "bold", marginTop: "6px" }}>{questionDisplayText}</p>
+              <p style={{ marginTop: "12px", color: "gold" }}>La votación se abrirá automáticamente.</p>
             </div>
           ) : (
             <div>
               <p style={{ color: "white", marginBottom: "10px" }}>
-                Escribe una pregunta para esta ronda (3 minutos).
+                Generando preguntas automáticas...
               </p>
-              {questionError && (
-                <div style={{ color: "#ff9c9c", marginBottom: "10px" }}>{questionError}</div>
-              )}
-              <textarea
-                value={questionText}
-                onChange={(event) => setQuestionText(event.target.value)}
-                rows={4}
-                style={{ width: "100%", borderRadius: "12px", padding: "12px" }}
-              />
-              <button
-                onClick={async () => {
-                  const trimmed = questionText.trim();
-                  if (!trimmed) {
-                    setQuestionError("Escribe una pregunta antes de enviar.");
-                    return;
-                  }
-                  const duplicate = findDuplicateQuestion(trimmed);
-                  if (duplicate) {
-                    setQuestionError("Esa pregunta ya existe: " + duplicate.text);
-                    return;
-                  }
-                  try {
-                    await updateDoc(doc(db, "galaState", "state"), {
-                      currentQuestion: {
-                        text: trimmed,
-                        gender: questionGender,
-                        createdBy: userId,
-                        createdAt: Date.now(),
-                        expiresAt: Date.now() + 180000,
-                      },
-                      stage: "waiting",
-                      questionStatus: "waiting",
-                      lastActionAt: serverTimestamp(),
-                    });
-                  } catch (err) {
-                    setQuestionError("Error guardando la pregunta. Intenta de nuevo.");
-                  }
-                }}
-                style={{
-                  marginTop: "10px",
-                  padding: "10px 18px",
-                  background: "gold",
-                  border: "none",
-                  borderRadius: "10px",
-                  cursor: "pointer",
-                }}
-              >
-                Crear pregunta
-              </button>
             </div>
           )}
         </div>
@@ -660,59 +786,132 @@ export default function Voter() {
 
       {alreadyJoined && galaState.stage === "waiting" && (
         <div style={{ marginTop: "40px" }}>
-          <h2>Esperando votación</h2>
-          {questionTextInState ? (
+          <h2>Esperando apertura automática</h2>
+          {questionDisplayText ? (
             <>
-              <p>Pregunta seleccionada:</p>
-              <p style={{ fontWeight: "bold" }}>{questionTextInState}</p>
+              <p style={{ fontWeight: "bold" }}>{questionDisplayText}</p>
             </>
           ) : (
             <p>No se creó una pregunta en el tiempo asignado.</p>
           )}
-          <p style={{ marginTop: "12px" }}>En cuanto el admin abra la votación, podrás votar.</p>
+          <p style={{ marginTop: "12px" }}>La votación se abrirá sola sin intervención del admin.</p>
         </div>
       )}
 
       {alreadyJoined && galaState.stage === "voting" && !hasVoted && (
         <div style={{ marginTop: "40px" }}>
-          <h2>Categoría: {galaState.currentCategory} ({galaState.currentGenderRound})</h2>
-          {questionTextInState && (
+          <h2>VOTACIÓN NÚMERO {currentQuestionNumber}</h2>
+          {questionDisplayText && (
             <div style={{ marginBottom: "20px", color: "white" }}>
-              <p>Pregunta actual:</p>
-              <p style={{ fontWeight: "bold" }}>{questionTextInState}</p>
+              <p style={{ fontWeight: "bold" }}>{questionDisplayText}</p>
+              <p style={{ marginTop: "8px" }}>Debes emitir 2 votos: uno a un nominado chico y otro a una nominada chica.</p>
+              <p style={{ marginTop: "8px", opacity: 0.85 }}>Si falta un género, ese voto se completa automáticamente.</p>
             </div>
           )}
 
-          {nominees.map((nominee) => (
-            <div key={nominee.id} style={{ marginBottom: "20px" }}>
-              <img
-                src={`http://localhost:3001/uploads/${nominee.photo}`}
-                alt={nominee.name}
-                width="100"
-                style={{ borderRadius: "10px" }}
-              />
-              <p>{nominee.name}</p>
-              <button
-                onClick={() => vote(nominee.id)}
-                style={{
-                  padding: "10px 20px",
-                  background: "gold",
-                  border: "none",
-                  borderRadius: "10px",
-                  cursor: "pointer"
-                }}
-              >
-                Votar
-              </button>
-            </div>
-          ))}
+          <h3 style={{ color: "white", marginBottom: "14px" }}>Todos los usuarios para votar</h3>
+
+          {connectedCandidates.length === 0 && (
+            <p style={{ color: "white", opacity: 0.9 }}>No hay usuarios disponibles para votar.</p>
+          )}
+
+          <div
+            style={{
+              width: "100%",
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+              gap: "14px",
+              alignItems: "stretch",
+              paddingBottom: "8px",
+            }}
+          >
+            {connectedCandidates.map((candidate) => {
+              const gender = (candidate.gender || "").toLowerCase();
+              const alreadyVotedThisGender = (gender === "female" || gender === "chica") ? hasVotedChica : hasVotedChico;
+              const photoName = candidate.profilePhoto || candidate.photo;
+              const photoSrc = photoName
+                ? `https://gala-backend.franrvguijo.workers.dev/image/${photoName}`
+                : "https://via.placeholder.com/100?text=No+img";
+              const statusLabel = candidate.connected ? "Conectado" : "Desconectado";
+
+              return (
+                <div
+                  key={candidate.id}
+                  style={{
+                    minWidth: "0",
+                    background: "rgba(0,0,0,0.28)",
+                    border: "1px solid rgba(255,255,255,0.22)",
+                    borderRadius: "16px",
+                    padding: "12px",
+                    textAlign: "center",
+                    backdropFilter: "blur(8px)",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <img
+                    src={photoSrc}
+                    alt={candidate.name || "Participante"}
+                    width="90"
+                    height="90"
+                    style={{ borderRadius: "14px", objectFit: "cover" }}
+                    onError={(event) => {
+                      event.currentTarget.onerror = null;
+                      event.currentTarget.src = "https://via.placeholder.com/100?text=No+img";
+                    }}
+                  />
+                  <p style={{ margin: "8px 0 4px", color: "white", fontWeight: 700 }}>
+                    {candidate.name || "Anónimo"}
+                  </p>
+                  <p style={{ margin: "0 0 10px", color: "#d1d5db", fontSize: "12px" }}>
+                    {statusLabel}
+                  </p>
+                  <button
+                    onClick={() => vote(candidate)}
+                    disabled={alreadyVotedThisGender}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      background: alreadyVotedThisGender ? "#777" : "gold",
+                      border: "none",
+                      borderRadius: "10px",
+                      cursor: alreadyVotedThisGender ? "not-allowed" : "pointer",
+                      fontWeight: 700,
+                    }}
+                  >
+                    Votar
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
       {/* YA VOTÓ */}
-      {alreadyJoined && hasVoted && (
+      {alreadyJoined && galaState.stage === "results" && (
+        <div style={{ marginTop: "60px", color: "white", lineHeight: 1.4 }}>
+          <h2>
+            ENHORABUENA SE HA FINALIZADO LA VOTACION, MIRA A LA PANTALLA DE ESPECTADOR
+          </h2>
+          <p style={{ marginTop: "12px", fontWeight: 700 }}>
+            Categoria: {galaState.currentCategory || "Sin categoria"}
+          </p>
+          <p style={{ marginTop: "6px", fontWeight: 700 }}>
+            Pregunta en show: {revealQuestionNumber}
+          </p>
+          {shouldPrepareStage && (
+            <p style={{ marginTop: "14px", color: "#facc15", fontWeight: 900 }}>
+              PREPARA PARA SUBIR AL ESCENARIO PARA DAR EL PREMIO
+            </p>
+          )}
+        </div>
+      )}
+
+      {alreadyJoined && galaState.stage !== "results" && hasVoted && (
         <h2 style={{ marginTop: "60px", color: "white" }}>
-          Ya has votado esta categoría.
+          Ya emitiste tus 2 votos. Esperando resultados.
         </h2>
       )}
     </div>

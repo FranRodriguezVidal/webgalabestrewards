@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { db } from "../firebase";
 import { collection, onSnapshot, doc, updateDoc, serverTimestamp, getDocs, query, where, deleteDoc } from "firebase/firestore";
 import { getQuestionsForGender } from "../questions";
@@ -80,20 +80,6 @@ export default function Admin() {
     });
   };
 
-  // Iniciar fase de pregunta para una ronda de género
-  const startQuestionRound = async (gender) => {
-    await updateDoc(doc(db, "galaState", "state"), {
-      stage: "question",
-      currentGenderRound: gender,
-      questionStatus: "creating",
-      currentQuestion: null,
-      questionExpiresAt: Date.now() + 180000,
-      votingExpiresAt: null,
-      showPresenter: false,
-      lastActionAt: serverTimestamp(),
-    });
-  };
-
   const selectQuestion = async (question) => {
     await updateDoc(doc(db, "galaState", "state"), {
       currentQuestion: {
@@ -114,11 +100,8 @@ export default function Admin() {
   };
 
   // Abrir votaciones después de la pregunta
-  const openVoting = async () => {
+  const openVoting = useCallback(async () => {
     if (!galaState?.currentCategory) return;
-
-    // Obtener usuarios conectados como nominados
-    const connectedUsers = users.filter(user => user.connected === true);
     
     // Crear nominados a partir de usuarios conectados
     const nomineesQuery = query(
@@ -141,7 +124,7 @@ export default function Admin() {
       showPresenter: false,
       lastActionAt: serverTimestamp(),
     });
-  };
+  }, [galaState?.currentCategory]);
 
   // Avanzar automáticamente a votación cuando la pregunta expire
   useEffect(() => {
@@ -155,7 +138,7 @@ export default function Admin() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [galaState]);
+  }, [galaState, openVoting]);
 
   // Avanzar automáticamente de chico a chica después de resultados
   useEffect(() => {
@@ -265,7 +248,6 @@ export default function Admin() {
   if (!galaState) return <p>Cargando...</p>;
 
   const currentQuestionText = galaState.currentQuestion?.text || "(ninguna seleccionada)";
-  const currentQuestionGender = galaState.currentQuestion?.gender || galaState.currentGenderRound || "--";
   const currentScreenLabel = (user) => user.currentScreen || (user.connected ? "En la gala" : "Desconectado");
 
   return (

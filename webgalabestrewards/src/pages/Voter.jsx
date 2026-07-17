@@ -24,7 +24,6 @@ export default function Voter() {
   const TOTAL_QUESTIONS = 5;
   const [userId, setUserId] = useState(null);
   const [galaState, setGalaState] = useState(null);
-  const [nominees, setNominees] = useState([]);
   const [connectedCandidates, setConnectedCandidates] = useState([]);
   const [hasVoted, setHasVoted] = useState(false);
   const [hasVotedChico, setHasVotedChico] = useState(false);
@@ -102,21 +101,6 @@ export default function Voter() {
 
     return () => unsubscribe();
   }, []);
-
-  // Cargar nominados de la categoría activa
-  useEffect(() => {
-    if (!galaState || galaState.currentCategory === "none") return;
-
-    const unsubscribe = onSnapshot(collection(db, "nominees"), (snapshot) => {
-      const list = snapshot.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() }))
-        .filter((nominee) => nominee.categoryId === galaState.currentCategory);
-
-      setNominees(list);
-    });
-
-    return () => unsubscribe();
-  }, [galaState]);
 
   // Cargar todos los usuarios para votar (sin incluir al usuario actual)
   useEffect(() => {
@@ -235,7 +219,7 @@ export default function Voter() {
     };
 
     publishQuestion();
-  }, [galaState]);
+  }, [galaState, currentQuestionNumber, questionVoteKey]);
 
   // Abrir votación automáticamente cuando termina la pantalla de pregunta
   useEffect(() => {
@@ -521,7 +505,6 @@ export default function Voter() {
   const revealResult = galaState?.resultsByGender?.[revealQuestionKey] || null;
   const shouldPrepareStage = !!(userId && revealResult?.presenterIds?.includes(userId));
   const creatingQuestion = galaState.stage === "question";
-  const waitingForVoting = galaState.stage === "waiting";
   const showingQuestion = ["question", "waiting", "voting"].includes(galaState.stage);
   const showWaitingForAdmin = alreadyJoined && !showingQuestion && galaState.stage !== "voting";
 

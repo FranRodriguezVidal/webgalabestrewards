@@ -163,8 +163,11 @@ svg {
 /* Home mode selector */
 .home-shell {
   min-height: 100vh;
+  min-height: 100dvh;
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding: clamp(20px, 4.2vw, 48px);
   background:
     radial-gradient(45% 35% at 12% 8%, rgba(56, 189, 248, 0.22), transparent 65%),
@@ -500,6 +503,7 @@ svg {
   .home-panel {
     padding: 14px 10px 16px;
     border-radius: 20px;
+    width: min(620px, 100%);
   }
 
   .home-lead {
@@ -532,6 +536,7 @@ svg {
   .home-action-main {
     font-size: clamp(20px, 6.6vw, 28px);
     letter-spacing: 0.03em;
+    max-width: 100%;
   }
 
   .home-action-sub {
@@ -540,8 +545,21 @@ svg {
 }
 
 @media (max-width: 420px) {
+  .home-shell {
+    padding: 10px;
+  }
+
+  .home-panel {
+    padding: 12px 8px 14px;
+  }
+
   .home-title {
     font-size: clamp(28px, 9vw, 36px);
+  }
+
+  .home-lead {
+    font-size: 13px;
+    line-height: 1.3;
   }
 
   .home-actions-grid {
@@ -549,8 +567,15 @@ svg {
   }
 
   .home-action-card {
-    min-height: 124px;
+    min-height: 116px;
     border-radius: 16px;
+    padding: 10px 8px;
+  }
+
+  .home-action-icon {
+    width: 34px;
+    height: 34px;
+    font-size: 10px;
   }
 
   .home-action-kicker {

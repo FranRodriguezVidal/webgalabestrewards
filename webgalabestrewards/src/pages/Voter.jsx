@@ -585,10 +585,14 @@ export default function Voter() {
       {!alreadyJoined && (
         <div
           style={{
-            marginTop: "40px",
+            marginTop: "28px",
             textAlign: "center",
             animation: "fadeIn 1s ease",
             width: "100%",
+            maxWidth: "min(980px, 96vw)",
+            marginLeft: "auto",
+            marginRight: "auto",
+            padding: "0 8px",
           }}
         >
           <h2
@@ -596,6 +600,8 @@ export default function Voter() {
               color: "white",
               textShadow: "0 0 10px white",
               marginBottom: "10px",
+              fontSize: "clamp(20px, 4.8vw, 36px)",
+              lineHeight: 1.2,
             }}
           >
             ¡Únete como votante y disfruta de la gala!
@@ -605,16 +611,18 @@ export default function Voter() {
           <div
             style={{
               marginTop: "20px",
-              padding: "20px",
+              padding: "clamp(10px, 2.2vw, 20px)",
               borderRadius: "20px",
               animation: "qrGlow 3s infinite ease-in-out",
               display: "flex",
               justifyContent: "center",
+              alignItems: "center",
             }}
           >
             <QRCodeCanvas
               value="https://webgalabestrewards.pages.dev/join"
               size={420}
+              style={{ width: "min(82vw, 420px)", height: "auto", borderRadius: "12px" }}
               bgColor="transparent"
               fgColor="#000000"
               imageSettings={{
@@ -632,19 +640,20 @@ export default function Voter() {
             onClick={() => navigate("/spectator")}
             style={{
               marginTop: "30px",
-              padding: "14px 32px",
+              padding: "clamp(12px, 2.6vw, 14px) clamp(18px, 5vw, 32px)",
               background: "rgba(255,255,255,0.15)",
               border: "2px solid rgba(255,255,255,0.4)",
               borderRadius: "999px",
               color: "white",
               cursor: "pointer",
               backdropFilter: "blur(8px)",
-              fontSize: "20px",
+              fontSize: "clamp(16px, 3.8vw, 20px)",
               fontWeight: "bold",
               letterSpacing: "1px",
               boxShadow: "0 0 15px rgba(255,255,255,0.6)",
               animation: "breatheBtn 3s infinite ease-in-out, fadePop 0.6s ease",
               transition: "all 0.3s ease",
+              width: "min(92vw, 320px)",
             }}
             onMouseEnter={(e) => {
               e.target.style.transform = "scale(1.12)";

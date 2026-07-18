@@ -140,9 +140,7 @@ export default function Spectator() {
         try {
             setManualOpenUrl("");
 
-            const connectedUsersSnapshot = await getDocs(
-                query(collection(db, "users"), where("connected", "==", true))
-            );
+            const usersSnapshot = await getDocs(collection(db, "users"));
 
             const nomineesSnapshot = await getDocs(
                 query(collection(db, "nominees"), where("categoryId", "==", galaState.currentCategory))
@@ -154,7 +152,7 @@ export default function Spectator() {
                 batch.delete(doc(db, "nominees", nomineeDoc.id));
             });
 
-            connectedUsersSnapshot.forEach((userDoc) => {
+            usersSnapshot.forEach((userDoc) => {
                 const userData = userDoc.data();
                 const nomineeRef = doc(db, "nominees", userDoc.id);
                 batch.set(nomineeRef, {
@@ -166,7 +164,7 @@ export default function Spectator() {
                     photo: userData.profilePhoto || "",
                     profilePhoto: userData.profilePhoto || "",
                     votes: 0,
-                    connected: true,
+                    connected: userData.connected === true,
                     updatedAt: serverTimestamp(),
                 });
 
@@ -174,7 +172,7 @@ export default function Spectator() {
                     joinedSessionId: sessionId,
                     votedRounds: {},
                     votes: 0,
-                    currentScreen: "Esperando inicio de gala",
+                    currentScreen: "Preparando votación",
                     lastSeen: serverTimestamp(),
                 });
             });

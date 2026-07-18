@@ -60,16 +60,38 @@ export default function Admin() {
   // Iniciar gala automáticamente
   const startGala = async () => {
     const sessionId = Date.now();
-    const usersSnapshot = await getDocs(query(collection(db, "users"), where("connected", "==", true)));
+    const usersSnapshot = await getDocs(collection(db, "users"));
+    const nomineesSnapshot = await getDocs(
+      query(collection(db, "nominees"), where("categoryId", "==", galaState?.currentCategory || categories[0]?.id || null))
+    );
     const batch = writeBatch(db);
 
+    nomineesSnapshot.forEach((nomineeDoc) => {
+      batch.delete(doc(db, "nominees", nomineeDoc.id));
+    });
+
     usersSnapshot.forEach((userDoc) => {
+      const userData = userDoc.data() || {};
+
       batch.update(doc(db, "users", userDoc.id), {
         joinedSessionId: sessionId,
         votedRounds: {},
         votes: 0,
-        currentScreen: "Esperando inicio de gala",
+        currentScreen: "Preparando votación",
         lastSeen: serverTimestamp(),
+      });
+
+      batch.set(doc(db, "nominees", userDoc.id), {
+        categoryId: galaState?.currentCategory || categories[0]?.id || null,
+        userId: userDoc.id,
+        name: userData.name || "Anónimo",
+        lastname: userData.lastname || "",
+        gender: userData.gender || "",
+        photo: userData.profilePhoto || "",
+        profilePhoto: userData.profilePhoto || "",
+        votes: 0,
+        connected: userData.connected === true,
+        updatedAt: serverTimestamp(),
       });
     });
 

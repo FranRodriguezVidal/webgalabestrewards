@@ -712,6 +712,39 @@ export default function Spectator() {
                     height: 100%;
                 }
 
+                .spectator-mobile-scroll {
+                    overflow: visible;
+                }
+
+                @media (max-width: 768px) {
+                    html, body {
+                        overflow-y: auto !important;
+                        height: auto !important;
+                    }
+
+                    .spectator-mobile-scroll {
+                        max-height: 100dvh;
+                        overflow-y: auto;
+                        -webkit-overflow-scrolling: touch;
+                        padding-bottom: 26px !important;
+                    }
+
+                    .spectator-status-panel {
+                        padding: 12px !important;
+                        border-radius: 18px !important;
+                    }
+
+                    .spectator-status-grid {
+                        grid-template-columns: 1fr !important;
+                        gap: 10px !important;
+                    }
+
+                    .spectator-rules-text {
+                        font-size: 14px !important;
+                        line-height: 1.45 !important;
+                    }
+                }
+
                 @keyframes lightMove1 {
                     0% { transform: translateY(0) rotate(45deg); }
                     50% { transform: translateY(200px) rotate(45deg); }
@@ -856,6 +889,7 @@ export default function Spectator() {
             {(isVotingScreen || galaState?.stage === "results") ? (
                 
                 <div
+                    className="spectator-mobile-scroll"
                     style={{
                         minHeight: "100vh",
                         display: "flex",
@@ -978,6 +1012,7 @@ export default function Spectator() {
                             </div>
 
                             <div
+                                className="spectator-status-panel"
                                 style={{
                                     width: "100%",
                                     maxWidth: "min(980px, 96vw)",
@@ -990,7 +1025,7 @@ export default function Spectator() {
                                     color: "#f8fafc",
                                 }}
                             >
-                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "14px" }}>
+                                <div className="spectator-status-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "14px" }}>
                                     <div style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "16px", padding: "16px" }}>
                                         <p style={{ margin: "0 0 6px", opacity: 0.85, color: "#cbd5e1", fontWeight: 600 }}>Hora actual</p>
                                         <p style={{ margin: 0, fontSize: "clamp(24px, 5vw, 36px)", fontWeight: "900", color: "#ffffff" }}>
@@ -1017,7 +1052,7 @@ export default function Spectator() {
 
                                     <div style={{ gridColumn: "1 / -1", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "16px", padding: "16px" }}>
                                         <p style={{ margin: "0 0 6px", opacity: 0.85, color: "#cbd5e1", fontWeight: 600 }}>Reglas rápidas</p>
-                                        <p style={{ margin: 0, fontSize: "17px", lineHeight: "1.55", fontWeight: "600", color: "#ffffff" }}>
+                                        <p className="spectator-rules-text" style={{ margin: 0, fontSize: "17px", lineHeight: "1.55", fontWeight: "600", color: "#ffffff" }}>
                                             - Cada votación dura 2:30.
                                             <br />- Debes votar una vez en cada género chico/chica.
                                             <br />- Si no votas, se cuenta como voto en blanco y gana automáticamente el candidato con más votos.

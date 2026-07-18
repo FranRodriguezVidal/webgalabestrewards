@@ -36,68 +36,127 @@
     transform: rotate(360deg);
   }
 }
-/* ============================
-   📱 iPhone 15 Pro Responsive
-   ============================ */
-@media (max-width: 430px) {
 
-  /* Contenedor principal */
-  .container {
-    padding: 20px !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow-x: hidden !important;
+/* Global responsive base */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* TV / very wide screens */
+@media (min-width: 1920px) {
+  body {
+    font-size: 18px;
   }
 
-  /* Títulos */
-  h1, h2, h3 {
-    font-size: 1.2rem !important;
-    text-align: center !important;
+  h1 {
+    font-size: clamp(42px, 2.5vw, 68px) !important;
+  }
+
+  h2 {
+    font-size: clamp(30px, 1.8vw, 42px) !important;
+  }
+
+  h3,
+  p,
+  span,
+  button,
+  input,
+  select,
+  textarea {
+    font-size: clamp(16px, 1vw, 22px) !important;
+  }
+}
+
+/* Laptop / desktop */
+@media (max-width: 1440px) {
+  h1 {
+    font-size: clamp(28px, 4.2vw, 52px) !important;
+  }
+
+  h2 {
+    font-size: clamp(22px, 3.2vw, 38px) !important;
+  }
+}
+
+/* Tablet */
+@media (max-width: 1024px) {
+  h1 {
+    font-size: clamp(26px, 5.6vw, 44px) !important;
+  }
+
+  h2 {
+    font-size: clamp(20px, 4.6vw, 32px) !important;
+  }
+
+  h3,
+  p,
+  span {
+    font-size: clamp(14px, 2.6vw, 20px) !important;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font-size: clamp(14px, 2.4vw, 18px) !important;
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  h1 {
+    font-size: clamp(24px, 7vw, 36px) !important;
+    line-height: 1.15 !important;
+  }
+
+  h2 {
+    font-size: clamp(18px, 5.6vw, 28px) !important;
     line-height: 1.2 !important;
   }
 
-  /* Texto general */
-  p, span {
-    font-size: 1rem !important;
-    text-align: center !important;
+  h3,
+  p,
+  span {
+    font-size: clamp(13px, 3.6vw, 18px) !important;
   }
 
-  /* Botones */
-  button {
+  button,
+  input,
+  select,
+  textarea {
+    width: 100%;
+    max-width: 100%;
+    font-size: clamp(14px, 3.8vw, 18px) !important;
+  }
+}
+
+/* Small phones */
+@media (max-width: 430px) {
+  .container,
+  .admin-card,
+  .question-card,
+  .user-card {
     width: 100% !important;
-    padding: 14px !important;
-    font-size: 1.1rem !important;
-    border-radius: 14px !important;
-    margin-top: 12px !important;
-  }
-
-  /* Inputs */
-  input {
-    width: 100% !important;
-    padding: 14px !important;
-    font-size: 1.1rem !important;
-    border-radius: 12px !important;
-  }
-
-  /* Tarjetas (como las de Spectator) */
-  .userCard {
-    width: 100% !important;
-    margin: 10px 0 !important;
-    padding: 16px !important;
-    border-radius: 18px !important;
-  }
-
-  /* Imágenes */
-  img {
     max-width: 100% !important;
-    height: auto !important;
-  }
-
-  /* Grid → convertir a columnas */
-  .grid {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 16px !important;
   }
 }
 

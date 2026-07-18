@@ -9,6 +9,10 @@ export default function Admin() {
   const [users, setUsers] = useState([]);
   const [selectedQuestionId, setSelectedQuestionId] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showQuestions, setShowQuestions] = useState(false);
+  const TOTAL_QUESTIONS = 5;
+  const QUESTION_DURATION_MS = 10000;
+  const ROUND_DURATION_MS = 150000;
 
   // Hora actual en tiempo real
   useEffect(() => {
@@ -52,15 +56,6 @@ export default function Admin() {
 
   const questionGender = galaState?.currentGenderRound || "chico";
   const availableQuestions = getQuestionsForGender(questionGender);
-
-  // Cambiar categoría activa
-  const setCategory = async (categoryId) => {
-    await updateDoc(doc(db, "galaState", "state"), {
-      currentCategory: categoryId,
-      stage: "waiting",
-      showPresenter: false
-    });
-  };
 
   // Iniciar gala automáticamente
   const startGala = async () => {
@@ -229,6 +224,29 @@ export default function Admin() {
     });
   };
 
+  const goToNextVotingFast = async () => {
+    if (!galaState) return;
+
+    const totalQuestions = galaState.totalQuestions || TOTAL_QUESTIONS;
+    const currentQuestion = galaState.currentQuestionNumber || 1;
+    const isLastQuestion = currentQuestion >= totalQuestions;
+
+    if (galaState.stage === "results" && isLastQuestion) {
+      window.alert("La gala de votaciones ya termino. Solo queda iniciar el show de ganadores.");
+      return;
+    }
+
+    if (galaState.stage === "voting") {
+      await updateDoc(doc(db, "galaState", "state"), {
+        votingExpiresAt: Date.now() - 1000,
+        lastActionAt: serverTimestamp(),
+      });
+      return;
+    }
+
+    await openVoting();
+  };
+
   const deleteUser = async (userId) => {
     const confirmDelete = window.confirm("¿Eliminar este usuario de la gala?");
     if (!confirmDelete) return;
@@ -245,10 +263,97 @@ export default function Admin() {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  if (!galaState) return <p>Cargando...</p>;
+  const getRemainingToRevealStartMs = () => {
+    const now = currentTime.getTime();
+    const totalQuestions = galaState?.totalQuestions || TOTAL_QUESTIONS;
+    const currentQuestionNumber = galaState?.currentQuestionNumber || 1;
+    const remainingQuestionCount = Math.max(0, totalQuestions - currentQuestionNumber);
 
-  const currentQuestionText = galaState.currentQuestion?.text || "(ninguna seleccionada)";
+    if (!galaState?.stage) {
+      return totalQuestions * (QUESTION_DURATION_MS + ROUND_DURATION_MS);
+    }
+
+    if (galaState?.revealModeActive) return 0;
+    if (galaState.stage === "results") return 0;
+
+    if (galaState.stage === "voting") {
+      const thisVotingRemaining = Math.max(0, (galaState.votingExpiresAt || now) - now);
+      return thisVotingRemaining + remainingQuestionCount * (QUESTION_DURATION_MS + ROUND_DURATION_MS);
+    }
+
+    if (galaState.stage === "question" || galaState.stage === "waiting") {
+      const thisQuestionRemaining = Math.max(0, (galaState.questionExpiresAt || now + QUESTION_DURATION_MS) - now);
+      return thisQuestionRemaining + ROUND_DURATION_MS + remainingQuestionCount * (QUESTION_DURATION_MS + ROUND_DURATION_MS);
+    }
+
+    return Math.max(0, remainingQuestionCount) * (QUESTION_DURATION_MS + ROUND_DURATION_MS);
+  };
+
+  const getRevealStartCountdown = () => {
+    if (galaState?.revealModeActive) return "EN CURSO";
+    if (galaState?.stage === "results") return "LISTO PARA INICIAR";
+
+    const remainingMs = getRemainingToRevealStartMs();
+    const totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${String(seconds).padStart(2, "0")}`;
+  };
+
+  const getRevealStartEstimatedTime = () => {
+    if (galaState?.revealModeActive) return "AHORA";
+    if (galaState?.stage === "results") return "AHORA";
+
+    const now = currentTime.getTime();
+    const estimated = new Date(now + getRemainingToRevealStartMs());
+    return estimated.toLocaleTimeString();
+  };
+
+  const currentQuestionText = galaState?.currentQuestionChico?.text || galaState?.currentQuestionChica?.text || galaState?.currentQuestion?.text || "(ninguna seleccionada)";
+  const currentQuestionNumber = galaState?.currentQuestionNumber || 1;
+  const currentQuestionVoteKey = `q${currentQuestionNumber}`;
+  const usersById = Object.fromEntries(users.map((user) => [user.id, user]));
+
+  const voteTrace = (() => {
+    if (!galaState?.currentCategory) return [];
+
+    return users
+      .map((user) => {
+        const categoryVotes = user.votedRounds?.[galaState.currentCategory] || {};
+        const qVotes = categoryVotes[currentQuestionVoteKey] || {};
+        const chicoTargetId = typeof qVotes.chico === "string" ? qVotes.chico : null;
+        const chicaTargetId = typeof qVotes.chica === "string" ? qVotes.chica : null;
+
+        const chicoTargetName =
+          chicoTargetId && chicoTargetId !== "AUTO"
+            ? `${usersById[chicoTargetId]?.name || "Usuario"} ${usersById[chicoTargetId]?.lastname || ""}`.trim()
+            : chicoTargetId === "AUTO"
+              ? "AUTO"
+              : null;
+
+        const chicaTargetName =
+          chicaTargetId && chicaTargetId !== "AUTO"
+            ? `${usersById[chicaTargetId]?.name || "Usuario"} ${usersById[chicaTargetId]?.lastname || ""}`.trim()
+            : chicaTargetId === "AUTO"
+              ? "AUTO"
+              : null;
+
+        if (!chicoTargetName && !chicaTargetName) return null;
+
+        const voterName = `${user.name || "Anónimo"} ${user.lastname || ""}`.trim();
+        return {
+          id: user.id,
+          voterName,
+          chicoTargetName,
+          chicaTargetName,
+        };
+      })
+      .filter(Boolean);
+  })();
+
   const currentScreenLabel = (user) => user.currentScreen || (user.connected ? "En la gala" : "Desconectado");
+
+  if (!galaState) return <p>Cargando...</p>;
 
   return (
     <div style={{ padding: "24px", minHeight: "100vh", background: "linear-gradient(135deg, #0f172a, #3730a3, #6366f1)", color: "#f8fafc" }}>
@@ -273,13 +378,15 @@ export default function Admin() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "20px", flexWrap: "wrap" }}>
         <div>
           <div style={{ fontSize: "30px", fontWeight: 800, marginBottom: "8px" }}>Panel de Admin</div>
-          <div style={{ color: "#cbd5e1", maxWidth: "640px" }}>Administra categorías, elige la pregunta para cada ronda, controla la votación y ve qué pantalla tiene cada votante.</div>
+          <div style={{ color: "#cbd5e1", maxWidth: "640px" }}>Controla la gala automática, revisa votos en tiempo real y monitorea el estado de cada votante.</div>
         </div>
         <div style={{ minWidth: "220px", background: "rgba(255,255,255,0.05)", padding: "18px 20px", borderRadius: "20px", border: "1px solid rgba(255,255,255,0.10)" }}>
           <div style={{ fontSize: "13px", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.12em" }}>Estado actual</div>
-          <div style={{ marginTop: "10px", fontSize: "16px" }}><strong>Categoría:</strong> {galaState.currentCategory || "Sin categoría"}</div>
           <div style={{ marginTop: "8px", fontSize: "16px" }}><strong>Etapa:</strong> {galaState.stage}</div>
-          <div style={{ marginTop: "8px", fontSize: "16px" }}><strong>Pregunta:</strong> {currentQuestionText}</div>
+          <div style={{ marginTop: "8px", fontSize: "16px" }}><strong>Pregunta actual:</strong> {currentQuestionNumber}</div>
+          <div style={{ marginTop: "8px", fontSize: "16px" }}><strong>Texto:</strong> {currentQuestionText}</div>
+          <div style={{ marginTop: "8px", fontSize: "16px" }}><strong>Inicio show ganadores:</strong> {getRevealStartEstimatedTime()}</div>
+          <div style={{ marginTop: "8px", fontSize: "16px", color: "#22d3ee" }}><strong>Falta para show:</strong> {getRevealStartCountdown()}</div>
           {galaState.stage === "voting" && galaState.votingExpiresAt && (
             <div style={{ marginTop: "8px", fontSize: "16px", color: "#fbbf24" }}>
               <strong>Tiempo votación:</strong> {getVotingTimeRemaining()}
@@ -291,34 +398,54 @@ export default function Admin() {
       <div className="admin-grid" style={{ marginTop: "24px" }}>
         <div className="admin-card">
           <div className="admin-section">
-            <h2>Seleccionar categoría</h2>
+            <h2>Banco de preguntas</h2>
             <div className="button-row">
-              {categories.map((cat) => (
-                <button key={cat.id} className="admin-button button-secondary" onClick={() => setCategory(cat.id)}>
-                  {cat.name}
-                </button>
-              ))}
+              <button className="admin-button button-secondary" onClick={() => setShowQuestions((prev) => !prev)}>
+                {showQuestions ? "Ocultar preguntas" : "Ver las preguntas"}
+              </button>
             </div>
-          </div>
 
-          <div className="admin-section">
-            <h2>Preguntas ({questionGender})</h2>
-            {availableQuestions.length > 0 ? (
-              availableQuestions.map((question) => (
-                <div key={question.id} className="question-card" style={{ borderColor: selectedQuestionId === question.id ? "#38bdf8" : undefined }}>
-                  <p style={{ margin: 0, fontSize: "16px", color: "#e2e8f0" }}>{question.text}</p>
-                  <button
-                    className="admin-button button-primary question-button"
-                    onClick={() => selectQuestion(question)}
-                    style={{ marginTop: "12px" }}
-                  >
-                    Seleccionar pregunta
-                  </button>
-                </div>
-              ))
-            ) : (
-              <div style={{ color: "#94a3b8" }}>No hay preguntas para esta ronda.</div>
+            {showQuestions && (
+              <div style={{ marginTop: "12px" }}>
+                <p style={{ color: "#94a3b8", marginTop: 0 }}>Mostrando preguntas para: {questionGender}</p>
+                {availableQuestions.length > 0 ? (
+                  availableQuestions.map((question) => (
+                    <div key={question.id} className="question-card" style={{ borderColor: selectedQuestionId === question.id ? "#38bdf8" : undefined }}>
+                      <p style={{ margin: 0, fontSize: "16px", color: "#e2e8f0" }}>{question.text}</p>
+                      <button
+                        className="admin-button button-primary question-button"
+                        onClick={() => selectQuestion(question)}
+                        style={{ marginTop: "12px" }}
+                      >
+                        Seleccionar pregunta
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ color: "#94a3b8" }}>No hay preguntas para esta ronda.</div>
+                )}
+              </div>
             )}
+
+            <div style={{ marginTop: "14px" }}>
+              <h2>Quien voto a quien ({currentQuestionVoteKey})</h2>
+              <div style={{ maxHeight: "26vh", overflowY: "auto", paddingRight: "4px" }}>
+                {voteTrace.length > 0 ? (
+                  voteTrace.map((entry) => (
+                    <div key={entry.id} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "10px 12px", marginBottom: "8px", color: "#e2e8f0", fontSize: "14px" }}>
+                      {entry.voterName}
+                      {entry.chicoTargetName ? ` voto a ${entry.chicoTargetName} (chico)` : ""}
+                      {entry.chicoTargetName && entry.chicaTargetName ? " | " : ""}
+                      {entry.chicaTargetName ? `voto a ${entry.chicaTargetName} (chica)` : ""}
+                    </div>
+                  ))
+                ) : (
+                  <p style={{ color: "#94a3b8", marginTop: 0 }}>
+                    Aun no hay votos registrados para esta pregunta.
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="admin-section">
@@ -330,6 +457,7 @@ export default function Admin() {
               La gala avanza en automático. Los controles de abajo son solo para emergencia.
             </p>
             <div className="button-row" style={{ marginTop: "10px" }}>
+              <button className="admin-button button-primary" onClick={goToNextVotingFast}>Siguiente votacion (rapido)</button>
               <button className="admin-button button-success" onClick={openVoting}>Emergencia: abrir votación</button>
               {galaState?.stage === "voting" && <button className="admin-button button-secondary" onClick={pauseVoting}>Emergencia: pausar</button>}
               {galaState?.stage === "paused" && <button className="admin-button button-primary" onClick={resumeVoting}>Emergencia: reanudar</button>}
@@ -371,6 +499,7 @@ export default function Admin() {
               <p style={{ color: "#94a3b8" }}>No hay usuarios registrados.</p>
             )}
           </div>
+
         </div>
       </div>
     </div>

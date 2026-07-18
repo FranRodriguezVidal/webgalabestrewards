@@ -157,12 +157,12 @@ export default function Voter() {
       const updates = {};
 
       if (!hasChicoCandidates && !hasVotedChico) {
-        updates[`votedRounds.${galaState.currentCategory}.${questionVoteKey}.chico`] = true;
+        updates[`votedRounds.${galaState.currentCategory}.${questionVoteKey}.chico`] = "AUTO";
         setHasVotedChico(true);
       }
 
       if (!hasChicaCandidates && !hasVotedChica) {
-        updates[`votedRounds.${galaState.currentCategory}.${questionVoteKey}.chica`] = true;
+        updates[`votedRounds.${galaState.currentCategory}.${questionVoteKey}.chica`] = "AUTO";
         setHasVotedChica(true);
       }
 
@@ -257,7 +257,15 @@ export default function Voter() {
       ]);
 
       const nomineesList = nomineesSnapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
-      const connectedUsers = usersSnapshot.docs.map((item) => item.data());
+      const nowMs = Date.now();
+      const connectedUsers = usersSnapshot.docs
+        .map((item) => ({ id: item.id, ...item.data() }))
+        .filter((user) => {
+          if (user.connected !== true) return false;
+          if (!user.lastSeen) return true;
+          const lastSeenDate = user.lastSeen.toDate ? user.lastSeen.toDate() : new Date(user.lastSeen);
+          return nowMs - lastSeenDate.getTime() <= 15000;
+        });
 
       const hasConnectedChico = connectedUsers.some((user) => {
         const gender = (user.gender || "").toLowerCase();
@@ -327,6 +335,7 @@ export default function Voter() {
       const baseResults = {
         ...(galaState.resultsByGender || {}),
         [questionVoteKey]: {
+          questionText: galaState.currentQuestionChico?.text || galaState.currentQuestionChica?.text || "",
           chico: {
             winnerId: topChico?.id || null,
             winnerName: topChico?.name || null,
@@ -463,7 +472,7 @@ export default function Voter() {
 
     await updateDoc(doc(db, "users", userId), {
       votes: increment(1),
-      [`votedRounds.${galaState.currentCategory}.${questionVoteKey}.${nomineeGender}`]: true,
+      [`votedRounds.${galaState.currentCategory}.${questionVoteKey}.${nomineeGender}`]: candidate.id,
     });
 
     if (nomineeGender === "chico") {
@@ -661,87 +670,9 @@ export default function Voter() {
       {/* ESPERANDO AL ADMIN */}
       {showWaitingForAdmin && (
         <div style={{ marginTop: "80px" }}>
-          <h2 style={{ color: "white", marginBottom: "20px" }}>
-            Esperando la siguiente ronda automática…
+          <h2 style={{ color: "white", marginBottom: "20px", lineHeight: 1.4 }}>
+            GRACIAS POR UNIR, ESPERA A QUE SE INICIE LA PARTIDA
           </h2>
-
-          {/* ANIMACIONES */}
-          <div className="loaderContainer">
-            <div className="loaderDots">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-          </div>
-
-          <style>
-            {`
-              .loaderCircle {
-                width: 70px;
-                height: 70px;
-                border-radius: 50%;
-                border: 6px solid rgba(255,255,255,0.3);
-                border-top-color: gold;
-                animation: spin 1s linear infinite;
-                margin: 0 auto 25px auto;
-              }
-
-              .loaderBar {
-                width: 150px;
-                height: 10px;
-                border-radius: 999px;
-                background: rgba(255,255,255,0.2);
-                overflow: hidden;
-                position: relative;
-                margin: 0 auto 25px auto;
-              }
-
-              .loaderBar::before {
-                content: "";
-                position: absolute;
-                left: -40%;
-                width: 40%;
-                height: 100%;
-                background: gold;
-                animation: slide 1.2s infinite;
-              }
-
-              .loaderDots {
-                display: flex;
-                justify-content: center;
-                gap: 10px;
-              }
-
-              .loaderDots span {
-                width: 12px;
-                height: 12px;
-                border-radius: 50%;
-                background: gold;
-                animation: bounce 0.8s infinite alternate;
-              }
-
-              .loaderDots span:nth-child(2) {
-                animation-delay: 0.2s;
-              }
-              .loaderDots span:nth-child(3) {
-                animation-delay: 0.4s;
-              }
-
-              @keyframes spin {
-                to { transform: rotate(360deg); }
-              }
-
-              @keyframes slide {
-                0% { left: -40%; }
-                100% { left: 100%; }
-              }
-
-              @keyframes bounce {
-                from { transform: translateY(0); opacity: 0.5; }
-                to { transform: translateY(-10px); opacity: 1; }
-              }
-            `}
-          </style>
         </div>
       )}
 
@@ -769,15 +700,17 @@ export default function Voter() {
 
       {alreadyJoined && galaState.stage === "waiting" && (
         <div style={{ marginTop: "40px" }}>
-          <h2>Esperando apertura automática</h2>
           {questionDisplayText ? (
             <>
+              <h2>Esperando apertura automática</h2>
               <p style={{ fontWeight: "bold" }}>{questionDisplayText}</p>
+              <p style={{ marginTop: "12px" }}>La votación se abrirá sola sin intervención del admin.</p>
             </>
           ) : (
-            <p>No se creó una pregunta en el tiempo asignado.</p>
+            <h2 style={{ color: "white", lineHeight: 1.4 }}>
+              GRACIAS POR UNIR, ESPERA A QUE SE INICIE LA PARTIDA
+            </h2>
           )}
-          <p style={{ marginTop: "12px" }}>La votación se abrirá sola sin intervención del admin.</p>
         </div>
       )}
 

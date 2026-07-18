@@ -4,6 +4,7 @@ export const QUESTION_BANK = [
   { id: 3, gender: "all", text: "¿Quién es la persona más fiestera?" },
   { id: 4, gender: "all", text: "¿Quién es la persona más dramática?" },
   { id: 5, gender: "all", text: "¿Quién es la persona más despistada?" },
+  
 ];
 
 const normalizeText = (text) =>

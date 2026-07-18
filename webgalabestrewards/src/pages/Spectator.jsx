@@ -245,89 +245,132 @@ export default function Spectator() {
         return currentTime.getTime() - lastSeenDate.getTime() <= 15000;
     };
 
-    const rankedGroupsAsc = useMemo(
-        () => [...(revealResult?.rankingGroups || [])].sort((a, b) => (a.votes || 0) - (b.votes || 0)),
-        [revealResult]
-    );
+    const normalizeNominee = (nominee = {}) => ({
+        id: nominee.id,
+        name: nominee.name || "Anónimo",
+        lastname: nominee.lastname || "",
+        gender: nominee.gender || "",
+        profilePhoto: nominee.profilePhoto || nominee.photo || "",
+        photo: nominee.photo || nominee.profilePhoto || "",
+        votes: Number(nominee.votes || 0),
+    });
 
-    const allRevealNominees = useMemo(() => {
-        const fromRanking = rankedGroupsAsc.flatMap((group) => group.nominees || []);
-        if (fromRanking.length) return fromRanking;
+    const sortNomineesByName = (a, b) =>
+        `${a.name || ""} ${a.lastname || ""}`.localeCompare(`${b.name || ""} ${b.lastname || ""}`, "es", {
+            sensitivity: "base",
+        });
 
-        return nominees.map((nominee) => ({
-            id: nominee.id,
-            name: nominee.name || "Anónimo",
-            profilePhoto: nominee.profilePhoto || nominee.photo || "",
-            votes: Number(nominee.votes || 0),
-        }));
-    }, [rankedGroupsAsc, nominees]);
+    const genderRankingGroupsDesc = useMemo(() => {
+        const normalizeGroups = (groups) =>
+            [...(groups || [])]
+                .map((group) => ({
+                    votes: Number(group?.votes || 0),
+                    nominees: [...(group?.nominees || [])].map(normalizeNominee).sort(sortNomineesByName),
+                }))
+                .filter((group) => group.nominees.length > 0)
+                .sort((a, b) => Number(b.votes || 0) - Number(a.votes || 0));
 
-    const effectiveGroupsAsc = useMemo(() => {
-        if (rankedGroupsAsc.length) return rankedGroupsAsc;
-
-        const grouped = allRevealNominees.reduce((acc, nominee) => {
-            const votes = Number(nominee.votes || 0);
-            if (!acc[votes]) acc[votes] = [];
-            acc[votes].push(nominee);
-            return acc;
-        }, {});
-
-        return Object.entries(grouped)
-            .map(([votes, nomineesInGroup]) => ({
-                votes: Number(votes),
-                nominees: nomineesInGroup,
-            }))
-            .sort((a, b) => (a.votes || 0) - (b.votes || 0));
-    }, [rankedGroupsAsc, allRevealNominees]);
-
-    const showSequence = useMemo(() => {
-        const groupsAsc = effectiveGroupsAsc;
-        if (!groupsAsc.length) return [];
-
-        if (groupsAsc.length <= 2) {
-            return [{
-                type: "finalTwo",
-                groups: groupsAsc,
-            }];
+        if (revealResult?.rankingsByGender) {
+            return {
+                chico: normalizeGroups(revealResult.rankingsByGender.chico),
+                chica: normalizeGroups(revealResult.rankingsByGender.chica),
+            };
         }
 
-        const singles = groupsAsc.slice(0, -2).map((group, idx) => ({
-            type: "single",
-            group,
-            rankLabel: `PUESTO ${groupsAsc.length - idx}`,
-        }));
+        const legacyGroups = revealResult?.rankingGroups || [];
+        const splitLegacyGroups = (targetGender) =>
+            legacyGroups
+                .map((group) => ({
+                    votes: Number(group?.votes || 0),
+                    nominees: (group?.nominees || [])
+                        .map(normalizeNominee)
+                        .filter((nominee) => {
+                            const gender = (nominee.gender || "").toLowerCase();
+                            return targetGender === "chico"
+                                ? gender === "chico" || gender === "male"
+                                : gender === "chica" || gender === "female";
+                        })
+                        .sort(sortNomineesByName),
+                }))
+                .filter((group) => group.nominees.length > 0);
 
-        return [
-            ...singles,
-            {
-                type: "finalTwo",
-                groups: groupsAsc.slice(-2),
-            },
+        return {
+            chico: normalizeGroups(splitLegacyGroups("chico")),
+            chica: normalizeGroups(splitLegacyGroups("chica")),
+        };
+    }, [revealResult]);
+
+    const allRevealNominees = useMemo(() => {
+        const fromStored = (revealResult?.allNominees || []).map(normalizeNominee);
+        const fromGenderRankings = [
+            ...genderRankingGroupsDesc.chico.flatMap((group) => group.nominees || []),
+            ...genderRankingGroupsDesc.chica.flatMap((group) => group.nominees || []),
         ];
-    }, [effectiveGroupsAsc]);
+        const fallbackNominees = nominees.map(normalizeNominee);
+        const source = fromStored.length ? fromStored : (fromGenderRankings.length ? fromGenderRankings : fallbackNominees);
+        const uniqueById = new Map();
+
+        source.forEach((nominee) => {
+            if (!nominee?.id) return;
+            if (!uniqueById.has(nominee.id)) uniqueById.set(nominee.id, nominee);
+        });
+
+        return Array.from(uniqueById.values()).sort(sortNomineesByName);
+    }, [revealResult, genderRankingGroupsDesc, nominees]);
+
+    const revealPositionSequence = useMemo(() => {
+        const assignDisplayPositions = (groups) => {
+            let counted = 0;
+            return groups.map((group) => {
+                const position = counted + 1;
+                counted += group.nominees.length;
+                return {
+                    ...group,
+                    position,
+                };
+            });
+        };
+
+        const chicoPositions = assignDisplayPositions(genderRankingGroupsDesc.chico);
+        const chicaPositions = assignDisplayPositions(genderRankingGroupsDesc.chica);
+        const allPositions = Array.from(new Set([
+            ...chicoPositions.map((group) => group.position),
+            ...chicaPositions.map((group) => group.position),
+        ])).sort((a, b) => b - a);
+
+        return allPositions.map((position) => ({
+            type: "position",
+            position,
+            chicoGroup: chicoPositions.find((group) => group.position === position) || null,
+            chicaGroup: chicaPositions.find((group) => group.position === position) || null,
+        }));
+    }, [genderRankingGroupsDesc]);
 
     useEffect(() => {
         if (!isShowScreen || !isRevealModeActive) return;
 
         setShowBlockIndex(-1);
-        if (!showSequence.length) return;
+        if (!revealPositionSequence.length) return;
 
+        let intervalId = null;
         const introTimer = setTimeout(() => {
             setShowBlockIndex(0);
-        }, 1600);
 
-        const interval = setInterval(() => {
-            setShowBlockIndex((prev) => {
-                if (prev >= showSequence.length - 1) return prev;
-                return prev + 1;
-            });
-        }, 3200);
+            if (revealPositionSequence.length > 1) {
+                intervalId = setInterval(() => {
+                    setShowBlockIndex((prev) => {
+                        if (prev >= revealPositionSequence.length - 1) return prev;
+                        return prev + 1;
+                    });
+                }, 8000);
+            }
+        }, 10000);
 
         return () => {
             clearTimeout(introTimer);
-            clearInterval(interval);
+            if (intervalId) clearInterval(intervalId);
         };
-    }, [isShowScreen, isRevealModeActive, showSequence, revealQuestionNumber]);
+    }, [isShowScreen, isRevealModeActive, revealPositionSequence, revealQuestionNumber]);
 
     useEffect(() => {
         const showFinished = !!galaState?.revealFinishedAt;
@@ -476,7 +519,7 @@ export default function Spectator() {
     }, [galaState, nominees]);
 
     if (isShowScreen) {
-        const activeBlock = showBlockIndex >= 0 ? showSequence[showBlockIndex] : null;
+        const activeBlock = showBlockIndex >= 0 ? revealPositionSequence[showBlockIndex] : null;
         const totalQuestions = galaState?.totalQuestions || TOTAL_QUESTIONS;
         const showFinished = !!galaState?.revealFinishedAt;
 
@@ -506,6 +549,11 @@ export default function Spectator() {
                         0% { box-shadow: 0 0 18px rgba(250,204,21,0.35); }
                         50% { box-shadow: 0 0 42px rgba(250,204,21,0.85); }
                         100% { box-shadow: 0 0 18px rgba(250,204,21,0.35); }
+                    }
+                    @keyframes shimmerSweep {
+                        0% { transform: translateX(-120%) skewX(-18deg); opacity: 0; }
+                        20% { opacity: 0.35; }
+                        100% { transform: translateX(220%) skewX(-18deg); opacity: 0; }
                     }
                     `}
                 </style>
@@ -537,15 +585,19 @@ export default function Spectator() {
 
                     {!showFinished && isRevealModeActive && allRevealNominees.length > 0 && showBlockIndex < 0 && (
                         <div style={{ marginTop: "48px", animation: "cinematicFade 1.1s ease" }}>
-                            <p style={{ margin: 0, fontSize: "46px", fontWeight: 900, color: "#fde68a" }}>NOMINADOS</p>
-                            <p style={{ margin: "10px 0 0", fontSize: "22px", color: "#cbd5e1" }}>Comienza la revelacion...</p>
+                            <p style={{ margin: 0, fontSize: "46px", fontWeight: 900, color: "#fde68a" }}>TODOS LOS NOMINADOS</p>
+                            <p style={{ margin: "10px 0 0", fontSize: "22px", color: "#cbd5e1" }}>10 segundos para ver a todos antes de revelar los puestos</p>
+                            <div style={{ marginTop: "12px", color: "#93c5fd", fontWeight: 800, fontSize: "18px" }}>Separados por votos de chico y chica</div>
                             <div style={{ marginTop: "24px", display: "flex", gap: "14px", justifyContent: "center", flexWrap: "wrap" }}>
                                 {allRevealNominees.map((nominee, idx) => (
-                                    <div key={nominee.id || idx} style={{ width: "96px", animation: `nomineePop 0.7s ease ${idx * 0.05}s both` }}>
+                                    <div key={nominee.id || idx} style={{ width: "110px", animation: `nomineePop 0.8s ease ${idx * 0.08}s both`, position: "relative" }}>
+                                        <div style={{ position: "absolute", inset: 0, overflow: "hidden", borderRadius: "18px", pointerEvents: "none" }}>
+                                            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent)", animation: `shimmerSweep 2.2s ease ${0.6 + idx * 0.08}s` }} />
+                                        </div>
                                         <img
                                             src={nominee.profilePhoto ? `https://gala-backend.franrvguijo.workers.dev/image/${nominee.profilePhoto}` : "https://via.placeholder.com/130?text=No+img"}
                                             alt={nominee.name}
-                                            style={{ width: "96px", height: "96px", borderRadius: "16px", objectFit: "cover", border: "1px solid rgba(255,255,255,0.3)" }}
+                                            style={{ width: "110px", height: "110px", borderRadius: "18px", objectFit: "cover", border: "1px solid rgba(255,255,255,0.3)" }}
                                             onError={(event) => {
                                                 event.currentTarget.onerror = null;
                                                 event.currentTarget.src = "https://via.placeholder.com/130?text=No+img";
@@ -560,71 +612,65 @@ export default function Spectator() {
                         </div>
                     )}
 
-                    {!showFinished && activeBlock?.type === "single" && (
-                        <div style={{ animation: "cinematicFade 0.9s ease" }}>
-                            <p style={{ margin: "0 0 12px", fontSize: "clamp(26px, 5.6vw, 40px)", color: "#fbbf24", fontWeight: 900 }}>{activeBlock.rankLabel}</p>
-                            <p style={{ margin: "0 0 20px", fontSize: "clamp(16px, 3.2vw, 22px)", color: "#e2e8f0" }}>{activeBlock.group.votes} votos</p>
-                            <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap" }}>
-                                {activeBlock.group.nominees.map((nominee, idx) => (
-                                    <div key={nominee.id} style={{ width: "clamp(92px, 20vw, 132px)", animation: `nomineePop 0.8s ease ${idx * 0.08}s both` }}>
-                                        <img
-                                            src={nominee.profilePhoto ? `https://gala-backend.franrvguijo.workers.dev/image/${nominee.profilePhoto}` : "https://via.placeholder.com/170?text=No+img"}
-                                            alt={nominee.name}
-                                            style={{ width: "100%", aspectRatio: "1 / 1", borderRadius: "22px", objectFit: "cover", border: "2px solid rgba(255,255,255,0.3)" }}
-                                            onError={(event) => {
-                                                event.currentTarget.onerror = null;
-                                                event.currentTarget.src = "https://via.placeholder.com/170?text=No+img";
-                                            }}
-                                        />
-                                        <p style={{ margin: "10px 0 0", fontSize: "18px", fontWeight: 800 }}>{nominee.name}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {!showFinished && activeBlock?.type === "finalTwo" && (
+                    {!showFinished && activeBlock?.type === "position" && (
                         <div style={{ animation: "cinematicFade 1s ease" }}>
-                            <p style={{ margin: "0 0 14px", fontSize: "clamp(24px, 5.6vw, 40px)", color: "#fef08a", fontWeight: 900 }}>GRAN FINAL: PUESTO 1 Y 2</p>
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "16px" }}>
-                                {activeBlock.groups.map((group, groupIdx) => (
+                            <p style={{ margin: "0 0 8px", fontSize: "clamp(30px, 6vw, 52px)", color: activeBlock.position === 1 ? "#fde68a" : "#fbbf24", fontWeight: 900 }}>
+                                {activeBlock.position === 1 ? "PRIMER PUESTO" : `${activeBlock.position}º PUESTO`}
+                            </p>
+                            <p style={{ margin: "0 0 20px", fontSize: "clamp(16px, 3.4vw, 22px)", color: "#cbd5e1", fontWeight: 700 }}>
+                                Chico y chica tienen posiciones separadas segun sus votos por genero
+                            </p>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "18px" }}>
+                                {[
+                                    { label: "CHICO", accent: "#38bdf8", group: activeBlock.chicoGroup },
+                                    { label: "CHICA", accent: "#f472b6", group: activeBlock.chicaGroup },
+                                ].map((column) => (
                                     <div
-                                        key={`${groupIdx}-${group.votes}`}
+                                        key={`${activeBlock.position}-${column.label}`}
                                         style={{
-                                            background: groupIdx === activeBlock.groups.length - 1 ? "rgba(82,58,10,0.42)" : "rgba(30,41,59,0.65)",
-                                            border: groupIdx === activeBlock.groups.length - 1 ? "2px solid rgba(250,204,21,0.55)" : "1px solid rgba(255,255,255,0.2)",
-                                            borderRadius: "18px",
-                                            padding: "16px",
+                                            background: activeBlock.position === 1 ? "rgba(82,58,10,0.42)" : "rgba(30,41,59,0.65)",
+                                            border: `2px solid ${column.accent}`,
+                                            borderRadius: "22px",
+                                            padding: "18px",
+                                            minHeight: "280px",
                                         }}
                                     >
-                                        <p style={{ margin: "0 0 10px", color: groupIdx === activeBlock.groups.length - 1 ? "#fde68a" : "#bfdbfe", fontWeight: 900, fontSize: "24px" }}>
-                                            {groupIdx === activeBlock.groups.length - 1 ? "PUESTO 1" : "PUESTO 2"}
+                                        <p style={{ margin: "0 0 10px", color: column.accent, fontWeight: 900, fontSize: "26px", letterSpacing: "0.08em" }}>
+                                            {column.label}
                                         </p>
-                                        <p style={{ margin: "0 0 14px", color: "#e2e8f0", fontWeight: 700 }}>{group.votes} votos</p>
-                                        <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
-                                            {group.nominees.map((nominee) => (
-                                                <div key={nominee.id} style={{ width: groupIdx === activeBlock.groups.length - 1 ? "clamp(138px, 27vw, 190px)" : "clamp(102px, 22vw, 138px)" }}>
+                                        {column.group ? (
+                                            <>
+                                                <p style={{ margin: "0 0 14px", color: "#e2e8f0", fontWeight: 700 }}>{column.group.votes} votos</p>
+                                                <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+                                                    {column.group.nominees.map((nominee, idx) => (
+                                                <div key={nominee.id} style={{ width: activeBlock.position === 1 ? "clamp(138px, 27vw, 190px)" : "clamp(108px, 22vw, 150px)", animation: `nomineePop 0.8s ease ${idx * 0.12}s both` }}>
                                                     <img
                                                         src={nominee.profilePhoto ? `https://gala-backend.franrvguijo.workers.dev/image/${nominee.profilePhoto}` : "https://via.placeholder.com/200?text=No+img"}
                                                         alt={nominee.name}
                                                         style={{
                                                             width: "100%",
                                                             aspectRatio: "1 / 1",
-                                                            borderRadius: groupIdx === activeBlock.groups.length - 1 ? "28px" : "20px",
+                                                            borderRadius: activeBlock.position === 1 ? "28px" : "20px",
                                                             objectFit: "cover",
-                                                            animation: groupIdx === activeBlock.groups.length - 1 ? "trophyGlow 2s infinite ease-in-out" : "none",
+                                                            animation: activeBlock.position === 1 ? "trophyGlow 2s infinite ease-in-out" : "none",
                                                         }}
                                                         onError={(event) => {
                                                             event.currentTarget.onerror = null;
                                                             event.currentTarget.src = "https://via.placeholder.com/200?text=No+img";
                                                         }}
                                                     />
-                                                    <p style={{ margin: "10px 0 0", fontSize: groupIdx === activeBlock.groups.length - 1 ? "28px" : "20px", fontWeight: 900 }}>
+                                                    <p style={{ margin: "10px 0 0", fontSize: activeBlock.position === 1 ? "28px" : "20px", fontWeight: 900 }}>
                                                         {nominee.name}
                                                     </p>
                                                 </div>
                                             ))}
-                                        </div>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div style={{ color: "#94a3b8", fontSize: "18px", fontWeight: 700, marginTop: "60px" }}>
+                                                Sin {column.label.toLowerCase()} en este puesto
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>

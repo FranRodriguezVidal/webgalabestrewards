@@ -430,8 +430,31 @@ export default function Voter() {
         });
       };
 
+      const buildRankingGroups = (nomineeList) => {
+        const groupedByVotes = nomineeList.reduce((acc, nominee) => {
+          const votes = Number(nominee.votes || 0);
+          if (!acc[votes]) acc[votes] = [];
+          acc[votes].push(nominee);
+          return acc;
+        }, {});
+
+        return Object.entries(groupedByVotes)
+          .sort((a, b) => Number(b[0]) - Number(a[0]))
+          .map(([votes, tiedNominees]) => ({
+            votes: Number(votes),
+            nominees: tiedNominees.sort((a, b) =>
+              `${a.name || ""} ${a.lastname || ""}`.localeCompare(`${b.name || ""} ${b.lastname || ""}`, "es", {
+                sensitivity: "base",
+              })
+            ),
+          }));
+      };
+
       const topChico = [...chicoNominees].sort(sortForWinner)[0] || null;
       const topChica = [...chicaNominees].sort(sortForWinner)[0] || null;
+
+      const rankingGroupsChico = buildRankingGroups(chicoNominees);
+      const rankingGroupsChica = buildRankingGroups(chicaNominees);
 
       const rankingByVotes = rankedNominees.reduce((acc, nominee) => {
         const votes = Number(nominee.votes || 0);
@@ -471,6 +494,15 @@ export default function Voter() {
           votes: topChica?.votes || 0,
         },
         rankingGroups,
+        rankingsByGender: {
+          chico: rankingGroupsChico,
+          chica: rankingGroupsChica,
+        },
+        allNominees: [...rankedNominees].sort((a, b) =>
+          `${a.name || ""} ${a.lastname || ""}`.localeCompare(`${b.name || ""} ${b.lastname || ""}`, "es", {
+            sensitivity: "base",
+          })
+        ),
         winnerIds: winnersGroup.nominees.map((nominee) => nominee.id),
         presenterIds,
         categoryId: galaState.currentCategory || null,

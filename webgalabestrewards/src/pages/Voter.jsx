@@ -248,7 +248,7 @@ export default function Voter() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [galaState, currentQuestionNumber, questionVoteKey]);
+  }, [galaState, currentQuestionNumber, questionVoteKey, TOTAL_QUESTIONS]);
 
   // Cerrar votación automáticamente a los 2m30s o antes si todos votan ambos géneros
   useEffect(() => {
@@ -401,7 +401,7 @@ export default function Voter() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [galaState, currentQuestionNumber, questionVoteKey]);
+  }, [galaState, currentQuestionNumber, questionVoteKey, TOTAL_QUESTIONS]);
 
   // Guardar pantalla actual para que el admin la vea
   useEffect(() => {

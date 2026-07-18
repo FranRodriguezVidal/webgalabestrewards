@@ -23,6 +23,7 @@ import { getQuestionsForGender } from "../questions";
 export default function Voter() {
   const TOTAL_QUESTIONS = getQuestionsForGender("all").length || 5;
   const [userId, setUserId] = useState(null);
+  const [removedByAdmin, setRemovedByAdmin] = useState(false);
   const [galaState, setGalaState] = useState(null);
   const [connectedCandidates, setConnectedCandidates] = useState([]);
   const [hasVoted, setHasVoted] = useState(false);
@@ -106,6 +107,42 @@ export default function Voter() {
 
     return () => unsubscribe();
   }, []);
+
+  // Si el admin elimina al usuario, cerrar su sesión móvil automáticamente
+  useEffect(() => {
+    if (!userId || removedByAdmin) return;
+
+    const userRef = doc(db, "users", userId);
+    const unsubscribe = onSnapshot(
+      userRef,
+      async (snapshot) => {
+        if (snapshot.exists()) return;
+
+        setRemovedByAdmin(true);
+        sessionStorage.removeItem("voterId");
+        setUserId(null);
+
+        try {
+          await auth.signOut();
+        } catch (error) {
+          console.warn("Error cerrando sesion tras eliminacion por admin:", error);
+        }
+
+        alert("El admin cerro tu conexion. Esta pestaña se cerrara.");
+
+        // Solo funciona si la pestaña fue abierta por script; si no, redirigimos.
+        window.close();
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 150);
+      },
+      (error) => {
+        console.warn("Error escuchando eliminacion de usuario:", error);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [userId, removedByAdmin]);
 
   // Cargar todos los usuarios para votar (sin incluir al usuario actual)
   useEffect(() => {

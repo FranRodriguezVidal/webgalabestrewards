@@ -170,9 +170,9 @@ svg {
   -webkit-overflow-scrolling: touch;
   padding: clamp(20px, 4.2vw, 48px);
   background:
-    radial-gradient(45% 35% at 12% 8%, rgba(56, 189, 248, 0.22), transparent 65%),
-    radial-gradient(34% 30% at 92% 12%, rgba(251, 191, 36, 0.2), transparent 64%),
-    linear-gradient(135deg, #071424 0%, #0a2744 52%, #12344f 100%);
+    radial-gradient(45% 35% at 12% 8%, rgba(255, 255, 255, 0.18), transparent 65%),
+    radial-gradient(34% 30% at 92% 12%, rgba(255, 102, 204, 0.22), transparent 64%),
+    linear-gradient(135deg, #3f1dcb 0%, #1a73e8 55%, #ffffff 82%, #ff66cc 100%);
 }
 
 .home-panel {
@@ -183,10 +183,10 @@ svg {
   text-align: center;
   border-radius: 30px;
   padding: clamp(18px, 3.5vw, 38px);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(5, 20, 37, 0.56);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(8px);
-  box-shadow: 0 26px 60px rgba(1, 12, 28, 0.52);
+  box-shadow: 0 26px 60px rgba(32, 20, 88, 0.32);
 }
 
 .home-bg-orb,
@@ -241,7 +241,7 @@ svg {
 
 .home-eyebrow {
   margin: 0;
-  color: #cfe8ff;
+  color: #ffffff;
   font-size: clamp(12px, 1.3vw, 16px);
   text-transform: uppercase;
   letter-spacing: 0.16em;
@@ -250,8 +250,8 @@ svg {
 
 .home-title {
   margin: 10px 0 0;
-  color: #f8fbff;
-  text-shadow: 0 12px 32px rgba(2, 10, 26, 0.64);
+  color: #ffffff;
+  text-shadow: 0 0 14px rgba(255, 255, 255, 0.45);
   font-size: clamp(32px, 5.6vw, 66px);
   line-height: 1.03;
   font-family: "Trebuchet MS", "Gill Sans", "Segoe UI", sans-serif;
@@ -261,7 +261,7 @@ svg {
 .home-lead {
   margin: 12px auto 0;
   width: min(760px, 94%);
-  color: #dbeafe;
+  color: #f8fafc;
   font-size: clamp(14px, 1.7vw, 20px);
   font-weight: 600;
   line-height: 1.4;
@@ -269,10 +269,10 @@ svg {
 
 .home-actions-grid {
   margin: clamp(18px, 3vw, 34px) auto 0;
-  width: min(1120px, 94vw);
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(14px, 2.1vw, 26px);
+  width: min(640px, 96vw);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 1.8vw, 18px);
   align-items: stretch;
 }
 
@@ -281,7 +281,7 @@ svg {
   isolation: isolate;
   overflow: hidden;
   width: 100%;
-  min-height: clamp(200px, 24vw, 290px);
+  min-height: clamp(112px, 12vw, 158px);
   border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 26px;
   cursor: pointer;
@@ -291,12 +291,12 @@ svg {
   align-items: center;
   gap: 8px;
   padding: 20px 16px;
-  color: #f8fafc;
+  color: #312e81;
   font-family: "Trebuchet MS", "Segoe UI", sans-serif;
   font-weight: 800;
-  box-shadow: 0 18px 42px rgba(6, 14, 34, 0.42);
+  box-shadow: 0 0 22px rgba(255, 255, 255, 0.55);
   transition: transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease;
-  animation: homeCardIn 0.72s ease both;
+  animation: homeCardIn 0.72s ease both, homeCardPulse 3s infinite ease-in-out;
 }
 
 .home-action-card::before {
@@ -322,9 +322,9 @@ svg {
 }
 
 .home-action-card:hover {
-  transform: translateY(-8px) scale(1.015);
-  border-color: rgba(255, 255, 255, 0.58);
-  box-shadow: 0 26px 56px rgba(6, 14, 34, 0.54);
+  transform: translateY(-5px) scale(1.01);
+  border-color: rgba(255, 215, 0, 0.9);
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.75);
 }
 
 .home-action-card:active {
@@ -338,9 +338,9 @@ svg {
   width: clamp(44px, 3.8vw, 56px);
   height: clamp(44px, 3.8vw, 56px);
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.48);
-  background: rgba(255, 255, 255, 0.18);
-  box-shadow: inset 0 1px 8px rgba(255, 255, 255, 0.24);
+  border: 1px solid rgba(49, 46, 129, 0.35);
+  background: rgba(255, 255, 255, 0.65);
+  box-shadow: inset 0 1px 8px rgba(255, 255, 255, 0.34);
   font-size: clamp(11px, 1vw, 13px);
   font-weight: 900;
   letter-spacing: 0.08em;
@@ -350,14 +350,14 @@ svg {
   text-transform: uppercase;
   letter-spacing: 0.15em;
   font-size: clamp(11px, 1vw, 14px);
-  opacity: 0.95;
+  opacity: 0.86;
 }
 
 .home-action-main {
-  font-size: clamp(26px, 2.8vw, 40px);
+  font-size: clamp(20px, 2.6vw, 32px);
   letter-spacing: 0.05em;
   line-height: 1;
-  text-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 5px 12px rgba(99, 102, 241, 0.25);
   max-width: 92%;
 }
 
@@ -365,21 +365,21 @@ svg {
   margin-top: 4px;
   font-size: clamp(12px, 1vw, 14px);
   font-weight: 700;
-  opacity: 0.95;
+  opacity: 0.82;
 }
 
 .home-action-spectator {
-  background: linear-gradient(160deg, rgba(14, 165, 233, 0.86), rgba(6, 95, 120, 0.88));
+  background: linear-gradient(135deg, #ffffff, #e8e8e8);
   animation-delay: 0.04s;
 }
 
 .home-action-voter {
-  background: linear-gradient(160deg, rgba(245, 158, 11, 0.9), rgba(180, 83, 9, 0.9));
+  background: linear-gradient(135deg, #ffffff, #e8e8e8);
   animation-delay: 0.15s;
 }
 
 .home-action-admin {
-  background: linear-gradient(160deg, rgba(34, 197, 94, 0.88), rgba(5, 120, 87, 0.9));
+  background: linear-gradient(135deg, #ffffff, #e8e8e8);
   animation-delay: 0.28s;
 }
 
@@ -391,6 +391,18 @@ svg {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes homeCardPulse {
+  0% {
+    box-shadow: 0 0 18px rgba(255, 255, 255, 0.48);
+  }
+  50% {
+    box-shadow: 0 0 28px rgba(255, 255, 255, 0.8);
+  }
+  100% {
+    box-shadow: 0 0 18px rgba(255, 255, 255, 0.48);
   }
 }
 
@@ -468,16 +480,12 @@ svg {
   }
 
   .home-actions-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
-  }
-
-  .home-actions-grid .home-action-admin {
-    grid-column: 1 / -1;
+    width: min(620px, 96vw);
+    gap: 12px;
   }
 
   .home-action-card {
-    min-height: 170px;
+    min-height: 122px;
     padding: 14px 12px;
   }
 
@@ -511,17 +519,13 @@ svg {
   }
 
   .home-actions-grid {
-    width: min(560px, 100%);
+    width: min(560px, 96vw);
     margin-top: 20px;
-    grid-template-columns: 1fr;
-  }
-
-  .home-actions-grid .home-action-admin {
-    grid-column: auto;
+    gap: 10px;
   }
 
   .home-action-card {
-    min-height: 136px;
+    min-height: 116px;
     border-radius: 18px;
     gap: 4px;
     padding: 12px 10px;
@@ -567,7 +571,7 @@ svg {
   }
 
   .home-action-card {
-    min-height: 116px;
+    min-height: 104px;
     border-radius: 16px;
     padding: 10px 8px;
   }
@@ -591,6 +595,8 @@ svg {
 /* Mobile hard override: always stack the 3 mode buttons vertically */
 @media (hover: none) and (pointer: coarse) and (max-width: 920px) {
   .home-actions-grid {
+    display: flex !important;
+    flex-direction: column !important;
     grid-template-columns: 1fr !important;
     gap: 10px !important;
     width: 100% !important;
@@ -603,6 +609,27 @@ svg {
   .home-action-card {
     width: 100% !important;
     min-height: 124px !important;
+  }
+}
+
+/* iOS Safari fallback: force vertical cards even when Safari reports a desktop-like viewport */
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 1024px) {
+    .home-actions-grid {
+      display: flex !important;
+      flex-direction: column !important;
+      width: 100% !important;
+      gap: 10px !important;
+    }
+
+    .home-actions-grid .home-action-admin {
+      grid-column: auto !important;
+    }
+
+    .home-action-card {
+      width: 100% !important;
+      min-height: 120px !important;
+    }
   }
 }
 

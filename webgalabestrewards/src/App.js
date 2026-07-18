@@ -204,6 +204,8 @@ function PasswordScreen() {
 function Home() {
   const navigate = useNavigate();
 
+  const isMobile = window.innerWidth < 600; // iPhone 15 Pro incluido
+
   return (
     <div
       style={{
@@ -259,6 +261,7 @@ function Home() {
         }}
       ></div>
 
+      {/* Animaciones */}
       <style>
         {`
           @keyframes lightMove1 {
@@ -283,171 +286,158 @@ function Home() {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
           }
+
+          @keyframes pulseGlow {
+            0% { box-shadow: 0 0 20px rgba(255,255,255,0.4); }
+            50% { box-shadow: 0 0 35px rgba(255,255,255,0.9); }
+            100% { box-shadow: 0 0 20px rgba(255,255,255,0.4); }
+          }
+
+          @keyframes breathe {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
+          }
+
+          @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.6); }
+            60% { opacity: 1; transform: scale(1.05); }
+            100% { transform: scale(1); }
+          }
         `}
       </style>
-      <style>
-        {`
-    html, body {
-      overflow: hidden;
-      height: 100%;
-    }
-  `}
-      </style>
-      <style>
-{`
-  @keyframes pulseGlow {
-    0% { box-shadow: 0 0 20px rgba(255,255,255,0.4); }
-    50% { box-shadow: 0 0 35px rgba(255,255,255,0.9); }
-    100% { box-shadow: 0 0 20px rgba(255,255,255,0.4); }
-  }
-
-  @keyframes breathe {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.03); }
-    100% { transform: scale(1); }
-  }
-
-  @keyframes popIn {
-    0% { opacity: 0; transform: scale(0.6); }
-    60% { opacity: 1; transform: scale(1.05); }
-    100% { transform: scale(1); }
-  }
-`}
-</style>
-
 
       <h1
         style={{
           color: "white",
           textShadow: "0 0 10px white",
-          fontSize: "45px",
+          fontSize: isMobile ? "32px" : "45px",
           animation: "fadeIn 1s ease",
         }}
       >
         Selecciona tu modo
       </h1>
 
+      {/* CONTENEDOR RESPONSIVE */}
       <div
-  style={{
-    display: "flex",
-    flexDirection: "row",
-    gap: "45px",
-    marginTop: "40px",
-    justifyContent: "center",
-    alignItems: "center",
-  }}
->
-  {/* BOTÓN ANIMADO */}
-  <button
-    onClick={() => navigate("/spectator")}
-    style={{
-      padding: "35px",
-      fontSize: "26px",
-      borderRadius: "22px",
-      border: "none",
-      cursor: "pointer",
-      background: "linear-gradient(135deg, #ffffff, #e8e8e8)",
-      color: "#3f1dcb",
-      fontWeight: "bold",
-      width: "230px",
-      height: "230px",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      textAlign: "center",
+        style={{
+          display: "flex",
+          flexDirection: isMobile ? "column" : "row",
+          gap: isMobile ? "25px" : "45px",
+          marginTop: "40px",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        {/* BOTÓN 1 */}
+        <button
+          onClick={() => navigate("/spectator")}
+          style={{
+            padding: "35px",
+            fontSize: "26px",
+            borderRadius: "22px",
+            border: "none",
+            cursor: "pointer",
+            background: "linear-gradient(135deg, #ffffff, #e8e8e8)",
+            color: "#3f1dcb",
+            fontWeight: "bold",
+            width: isMobile ? "200px" : "230px",
+            height: isMobile ? "200px" : "230px",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            textAlign: "center",
+            animation: "pulseGlow 3s infinite ease-in-out, breathe 4s infinite ease-in-out, popIn 0.6s ease",
+            transition: "all 0.3s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = "scale(1.12)";
+            e.target.style.boxShadow = "0 0 45px gold";
+            e.target.style.background = "linear-gradient(135deg, gold, #ffdd55)";
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = "scale(1)";
+            e.target.style.boxShadow = "0 0 25px rgba(255,255,255,0.7)";
+            e.target.style.background = "linear-gradient(135deg, #ffffff, #e8e8e8)";
+          }}
+        >
+          PANTALLA<br />PRINCIPAL
+        </button>
 
-      animation: "pulseGlow 3s infinite ease-in-out, breathe 4s infinite ease-in-out, popIn 0.6s ease",
-      transition: "all 0.3s ease",
-    }}
-    onMouseEnter={(e) => {
-      e.target.style.transform = "scale(1.12)";
-      e.target.style.boxShadow = "0 0 45px gold";
-      e.target.style.background = "linear-gradient(135deg, gold, #ffdd55)";
-    }}
-    onMouseLeave={(e) => {
-      e.target.style.transform = "scale(1)";
-      e.target.style.boxShadow = "0 0 25px rgba(255,255,255,0.7)";
-      e.target.style.background = "linear-gradient(135deg, #ffffff, #e8e8e8)";
-    }}
-  >
-    PANTALLA<br />PRINCIPAL
-  </button>
+        {/* BOTÓN 2 */}
+        <button
+          onClick={() => navigate("/voter")}
+          style={{
+            padding: "35px",
+            fontSize: "26px",
+            borderRadius: "22px",
+            border: "none",
+            cursor: "pointer",
+            background: "linear-gradient(135deg, #ffffff, #e8e8e8)",
+            color: "#3f1dcb",
+            fontWeight: "bold",
+            width: isMobile ? "200px" : "230px",
+            height: isMobile ? "200px" : "230px",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            textAlign: "center",
+            animation: "pulseGlow 3s infinite ease-in-out, breathe 4s infinite ease-in-out, popIn 0.8s ease",
+            transition: "all 0.3s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = "scale(1.12)";
+            e.target.style.boxShadow = "0 0 45px gold";
+            e.target.style.background = "linear-gradient(135deg, gold, #ffdd55)";
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = "scale(1)";
+            e.target.style.boxShadow = "0 0 25px rgba(255,255,255,0.7)";
+            e.target.style.background = "linear-gradient(135deg, #ffffff, #e8e8e8)";
+          }}
+        >
+          VOTANTE
+        </button>
 
-  <button
-    onClick={() => navigate("/voter")}
-    style={{
-      padding: "35px",
-      fontSize: "26px",
-      borderRadius: "22px",
-      border: "none",
-      cursor: "pointer",
-      background: "linear-gradient(135deg, #ffffff, #e8e8e8)",
-      color: "#3f1dcb",
-      fontWeight: "bold",
-      width: "230px",
-      height: "230px",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      textAlign: "center",
-
-      animation: "pulseGlow 3s infinite ease-in-out, breathe 4s infinite ease-in-out, popIn 0.8s ease",
-      transition: "all 0.3s ease",
-    }}
-    onMouseEnter={(e) => {
-      e.target.style.transform = "scale(1.12)";
-      e.target.style.boxShadow = "0 0 45px gold";
-      e.target.style.background = "linear-gradient(135deg, gold, #ffdd55)";
-    }}
-    onMouseLeave={(e) => {
-      e.target.style.transform = "scale(1)";
-      e.target.style.boxShadow = "0 0 25px rgba(255,255,255,0.7)";
-      e.target.style.background = "linear-gradient(135deg, #ffffff, #e8e8e8)";
-    }}
-  >
-    VOTANTE
-  </button>
-
-  <button
-    onClick={() => navigate("/admin")}
-    style={{
-      padding: "35px",
-      fontSize: "26px",
-      borderRadius: "22px",
-      border: "none",
-      cursor: "pointer",
-      background: "linear-gradient(135deg, #ffffff, #e8e8e8)",
-      color: "#3f1dcb",
-      fontWeight: "bold",
-      width: "230px",
-      height: "230px",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      textAlign: "center",
-
-      animation: "pulseGlow 3s infinite ease-in-out, breathe 4s infinite ease-in-out, popIn 1s ease",
-      transition: "all 0.3s ease",
-    }}
-    onMouseEnter={(e) => {
-      e.target.style.transform = "scale(1.12)";
-      e.target.style.boxShadow = "0 0 45px gold";
-      e.target.style.background = "linear-gradient(135deg, gold, #ffdd55)";
-    }}
-    onMouseLeave={(e) => {
-      e.target.style.transform = "scale(1)";
-      e.target.style.boxShadow = "0 0 25px rgba(255,255,255,0.7)";
-      e.target.style.background = "linear-gradient(135deg, #ffffff, #e8e8e8)";
-    }}
-  >
-    ADMIN
-  </button>
-</div>
-
-
+        {/* BOTÓN 3 */}
+        <button
+          onClick={() => navigate("/admin")}
+          style={{
+            padding: "35px",
+            fontSize: "26px",
+            borderRadius: "22px",
+            border: "none",
+            cursor: "pointer",
+            background: "linear-gradient(135deg, #ffffff, #e8e8e8)",
+            color: "#3f1dcb",
+            fontWeight: "bold",
+            width: isMobile ? "200px" : "230px",
+            height: isMobile ? "200px" : "230px",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            textAlign: "center",
+            animation: "pulseGlow 3s infinite ease-in-out, breathe 4s infinite ease-in-out, popIn 1s ease",
+            transition: "all 0.3s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = "scale(1.12)";
+            e.target.style.boxShadow = "0 0 45px gold";
+            e.target.style.background = "linear-gradient(135deg, gold, #ffdd55)";
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = "scale(1)";
+            e.target.style.boxShadow = "0 0 25px rgba(255,255,255,0.7)";
+            e.target.style.background = "linear-gradient(135deg, #ffffff, #e8e8e8)";
+          }}
+        >
+          ADMIN
+        </button>
+      </div>
     </div>
   );
 }
+
 
 
 function App() {

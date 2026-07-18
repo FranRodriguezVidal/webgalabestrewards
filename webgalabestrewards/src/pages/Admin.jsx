@@ -7,7 +7,6 @@ export default function Admin() {
   const [categories, setCategories] = useState([]);
   const [galaState, setGalaState] = useState(null);
   const [users, setUsers] = useState([]);
-  const [selectedQuestionId, setSelectedQuestionId] = useState(null);
   const [selectedTraceQuestionNumber, setSelectedTraceQuestionNumber] = useState(1);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showQuestions, setShowQuestions] = useState(false);
@@ -113,25 +112,6 @@ export default function Admin() {
       showPresenter: false,
       lastActionAt: serverTimestamp(),
     });
-  };
-
-  const selectQuestion = async (question) => {
-    await updateDoc(doc(db, "galaState", "state"), {
-      currentQuestion: {
-        text: question.text,
-        gender: question.gender,
-        createdBy: "admin",
-        createdAt: Date.now(),
-        expiresAt: Date.now() + 180000,
-      },
-      stage: "waiting",
-      questionStatus: "waiting",
-      questionExpiresAt: Date.now() + 180000,
-      votingExpiresAt: null,
-      showPresenter: false,
-      lastActionAt: serverTimestamp(),
-    });
-    setSelectedQuestionId(question.id);
   };
 
   // Abrir votaciones después de la pregunta
@@ -468,7 +448,12 @@ export default function Admin() {
 
             {showQuestions && (
               <div style={{ marginTop: "12px" }}>
-                <p style={{ color: "#94a3b8", marginTop: 0 }}>Mostrando preguntas desde questions.js</p>
+                <p style={{ color: "#94a3b8", marginTop: 0 }}>
+                  Mostrando preguntas desde questions.js. Este panel solo informa; no cambia el flujo de la gala.
+                </p>
+                <p style={{ color: "#93c5fd", marginTop: 0, fontWeight: 700 }}>
+                  Total en banco: {availableQuestions.length}
+                </p>
                 {availableQuestions.length > 0 ? (
                   availableQuestions.map((question, index) => {
                     const questionNumber = index + 1;
@@ -477,7 +462,7 @@ export default function Admin() {
                     const isTraceSelected = selectedTraceQuestionNumber === questionNumber;
 
                     return (
-                    <div key={question.id} className="question-card" style={{ borderColor: selectedQuestionId === question.id || isTraceSelected ? "#38bdf8" : undefined }}>
+                    <div key={question.id} className="question-card" style={{ borderColor: isTraceSelected ? "#38bdf8" : undefined }}>
                       <p style={{ margin: "0 0 6px", fontSize: "13px", color: "#93c5fd", fontWeight: 700 }}>
                         P{questionNumber} ({questionKey})
                       </p>
@@ -488,12 +473,6 @@ export default function Admin() {
                           onClick={() => setSelectedTraceQuestionNumber(questionNumber)}
                         >
                           Ver votos P{questionNumber}
-                        </button>
-                        <button
-                          className="admin-button button-primary question-button"
-                          onClick={() => selectQuestion(question)}
-                        >
-                          Seleccionar pregunta
                         </button>
                       </div>
 

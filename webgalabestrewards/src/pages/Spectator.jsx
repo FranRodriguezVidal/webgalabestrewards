@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { db } from "../firebase";
+import { getQuestionsForGender } from "../questions";
 import {
     collection,
     onSnapshot,
@@ -28,7 +29,7 @@ export default function Spectator() {
     const isShowScreen = queryParams.get("show") === "results";
 
     const isVotingActive = galaState?.stage === "voting";
-    const TOTAL_QUESTIONS = 5;
+    const TOTAL_QUESTIONS = getQuestionsForGender("all").length || 5;
     const QUESTION_DURATION_MS = 10000;
     const ROUND_DURATION_MS = 150000;
     const revealQuestionNumber = galaState?.revealQuestionNumber || 1;

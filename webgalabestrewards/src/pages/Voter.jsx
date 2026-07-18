@@ -21,7 +21,7 @@ import { getQuestionsForGender } from "../questions";
 
 
 export default function Voter() {
-  const TOTAL_QUESTIONS = 5;
+  const TOTAL_QUESTIONS = getQuestionsForGender("all").length || 5;
   const [userId, setUserId] = useState(null);
   const [galaState, setGalaState] = useState(null);
   const [connectedCandidates, setConnectedCandidates] = useState([]);
@@ -37,9 +37,14 @@ export default function Voter() {
 
   // Detectar usuario actual
   useEffect(() => {
-    onAuthStateChanged(auth, (user) => {
-      if (user) setUserId(user.uid);
+    const voterIdInSession = sessionStorage.getItem("voterId");
+    if (voterIdInSession) setUserId(voterIdInSession);
+
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!voterIdInSession && user) setUserId(user.uid);
     });
+
+    return () => unsubscribe();
   }, []);
 
   // Actualizar presencia del votante según visibilidad de la pestaña
@@ -188,7 +193,8 @@ export default function Voter() {
     const questions = getQuestionsForGender("all");
     if (!questions.length) return;
 
-    const chosenQuestion = questions[Math.floor(Math.random() * questions.length)];
+    const questionIndex = Math.max(0, (currentQuestionNumber || 1) - 1) % questions.length;
+    const chosenQuestion = questions[questionIndex];
 
     const publishQuestion = async () => {
       try {
@@ -688,22 +694,7 @@ export default function Voter() {
       {/* VOTACIÓN */}
       {alreadyJoined && creatingQuestion && (
         <div style={{ marginTop: "40px" }}>
-          <h2 style={{ marginBottom: "12px" }}>
-            VOTACIÓN NÚMERO 1
-          </h2>
-          {questionDisplayText ? (
-            <div style={{ color: "white", fontSize: "18px" }}>
-              <p>Pregunta:</p>
-              <p style={{ fontWeight: "bold", marginTop: "6px" }}>{questionDisplayText}</p>
-              <p style={{ marginTop: "12px", color: "gold" }}>La votación se abrirá automáticamente.</p>
-            </div>
-          ) : (
-            <div>
-              <p style={{ color: "white", marginBottom: "10px" }}>
-                Generando preguntas automáticas...
-              </p>
-            </div>
-          )}
+          <h2 style={{ marginBottom: "12px", color: "white" }}>CARGANDO...</h2>
         </div>
       )}
 
@@ -743,9 +734,10 @@ export default function Voter() {
           <div
             style={{
               width: "100%",
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
-              gap: "14px",
+              maxWidth: "min(980px, 96vw)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "10px",
               alignItems: "stretch",
               paddingBottom: "8px",
             }}
@@ -753,6 +745,7 @@ export default function Voter() {
             {connectedCandidates.map((candidate) => {
               const gender = (candidate.gender || "").toLowerCase();
               const alreadyVotedThisGender = (gender === "female" || gender === "chica") ? hasVotedChica : hasVotedChico;
+              const genderLabel = (gender === "female" || gender === "chica") ? "CHICA" : "CHICO";
               const photoName = candidate.profilePhoto || candidate.photo;
               const photoSrc = photoName
                 ? `https://gala-backend.franrvguijo.workers.dev/image/${photoName}`
@@ -766,46 +759,55 @@ export default function Voter() {
                     minWidth: "0",
                     background: "rgba(0,0,0,0.28)",
                     border: "1px solid rgba(255,255,255,0.22)",
-                    borderRadius: "16px",
-                    padding: "12px",
-                    textAlign: "center",
+                    borderRadius: "14px",
+                    padding: "10px",
                     backdropFilter: "blur(8px)",
                     display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "10px",
+                    textAlign: "left",
                   }}
                 >
                   <img
                     src={photoSrc}
                     alt={candidate.name || "Participante"}
-                    width="90"
-                    height="90"
-                    style={{ borderRadius: "14px", objectFit: "cover" }}
+                    width="62"
+                    height="62"
+                    style={{ borderRadius: "12px", objectFit: "cover", flexShrink: 0 }}
                     onError={(event) => {
                       event.currentTarget.onerror = null;
                       event.currentTarget.src = "https://via.placeholder.com/100?text=No+img";
                     }}
                   />
-                  <p style={{ margin: "8px 0 4px", color: "white", fontWeight: 700 }}>
-                    {candidate.name || "Anónimo"}
-                  </p>
-                  <p style={{ margin: "0 0 10px", color: "#d1d5db", fontSize: "12px" }}>
-                    {statusLabel}
-                  </p>
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: "0 0 2px", color: "white", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {candidate.name || "Anónimo"} {candidate.lastname || ""}
+                    </p>
+                    <p style={{ margin: "0", color: "#facc15", fontSize: "12px", fontWeight: 800 }}>
+                      Género para voto: {genderLabel}
+                    </p>
+                    <p style={{ margin: "2px 0 0", color: "#d1d5db", fontSize: "12px" }}>
+                      {statusLabel}
+                    </p>
+                  </div>
+
                   <button
                     onClick={() => vote(candidate)}
                     disabled={alreadyVotedThisGender}
                     style={{
-                      width: "100%",
-                      padding: "10px 12px",
+                      width: "min(40vw, 160px)",
+                      minWidth: "112px",
+                      padding: "10px 10px",
                       background: alreadyVotedThisGender ? "#777" : "gold",
                       border: "none",
                       borderRadius: "10px",
                       cursor: alreadyVotedThisGender ? "not-allowed" : "pointer",
                       fontWeight: 700,
+                      fontSize: "13px",
                     }}
                   >
-                    Votar
+                    {alreadyVotedThisGender ? `Ya votado ${genderLabel}` : `Votar ${genderLabel}`}
                   </button>
                 </div>
               );
@@ -820,12 +822,6 @@ export default function Voter() {
           <h2>
             ENHORABUENA SE HA FINALIZADO LA VOTACION, MIRA A LA PANTALLA DE ESPECTADOR
           </h2>
-          <p style={{ marginTop: "12px", fontWeight: 700 }}>
-            Categoria: {galaState.currentCategory || "Sin categoria"}
-          </p>
-          <p style={{ marginTop: "6px", fontWeight: 700 }}>
-            Pregunta en show: {revealQuestionNumber}
-          </p>
           {shouldPrepareStage && (
             <p style={{ marginTop: "14px", color: "#facc15", fontWeight: 900 }}>
               PREPARA PARA SUBIR AL ESCENARIO PARA DAR EL PREMIO

@@ -10,7 +10,7 @@ export default function Admin() {
   const [selectedQuestionId, setSelectedQuestionId] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showQuestions, setShowQuestions] = useState(false);
-  const TOTAL_QUESTIONS = 5;
+  const TOTAL_QUESTIONS = getQuestionsForGender("all").length || 5;
   const QUESTION_DURATION_MS = 10000;
   const ROUND_DURATION_MS = 150000;
 
@@ -64,7 +64,7 @@ export default function Admin() {
       currentCategory: galaState?.currentCategory || categories[0]?.id || null,
       questionStatus: "creating",
       currentQuestionNumber: 1,
-      totalQuestions: 5,
+      totalQuestions: TOTAL_QUESTIONS,
       currentQuestionChico: null,
       currentQuestionChica: null,
       questionExpiresAt: Date.now() + 10000,

@@ -225,7 +225,7 @@ export default function Voter() {
     };
 
     publishQuestion();
-  }, [galaState, currentQuestionNumber, questionVoteKey]);
+  }, [galaState, currentQuestionNumber, questionVoteKey, TOTAL_QUESTIONS]);
 
   // Abrir votación automáticamente cuando termina la pantalla de pregunta
   useEffect(() => {

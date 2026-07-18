@@ -410,6 +410,7 @@ export default function Voter() {
           votes: Number(votesByNomineeId[nomineeId] || 0),
           profilePhoto: userInfo.profilePhoto || userInfo.photo || nomineeInfo.profilePhoto || nomineeInfo.photo || "",
           photo: userInfo.photo || userInfo.profilePhoto || nomineeInfo.photo || nomineeInfo.profilePhoto || "",
+          winnerPhoto: userInfo.winnerPhoto || nomineeInfo.winnerPhoto || "",
         };
       });
 

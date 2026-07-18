@@ -88,6 +88,7 @@ export default function Admin() {
         gender: userData.gender || "",
         photo: userData.profilePhoto || "",
         profilePhoto: userData.profilePhoto || "",
+        winnerPhoto: userData.winnerPhoto || "",
         votes: 0,
         connected: userData.connected === true,
         updatedAt: serverTimestamp(),

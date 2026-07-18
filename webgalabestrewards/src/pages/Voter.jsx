@@ -257,12 +257,18 @@ export default function Voter() {
     const interval = setInterval(async () => {
       if (!galaState.currentCategory) return;
 
-      const [nomineesSnapshot, usersSnapshot] = await Promise.all([
+      const [nomineesSnapshot, usersSnapshot, allUsersSnapshot] = await Promise.all([
         getDocs(query(collection(db, "nominees"), where("categoryId", "==", galaState.currentCategory))),
         getDocs(query(collection(db, "users"), where("connected", "==", true))),
+        getDocs(collection(db, "users")),
       ]);
 
       const nomineesList = nomineesSnapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      const allUsers = allUsersSnapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      const usersById = allUsers.reduce((acc, user) => {
+        acc[user.id] = user;
+        return acc;
+      }, {});
       const nowMs = Date.now();
       const connectedUsers = usersSnapshot.docs
         .map((item) => ({ id: item.id, ...item.data() }))
@@ -293,11 +299,34 @@ export default function Voter() {
       if (Date.now() <= galaState.votingExpiresAt && !allConnectedVoted) return;
       clearInterval(interval);
 
-      const chicoNominees = nomineesList.filter((nominee) => {
+      const votesByNomineeId = allUsers.reduce((acc, voter) => {
+        const qVotes = voter?.votedRounds?.[galaState.currentCategory]?.[questionVoteKey] || {};
+        [qVotes.chico, qVotes.chica].forEach((targetId) => {
+          if (typeof targetId !== "string" || !targetId || targetId === "AUTO") return;
+          acc[targetId] = (acc[targetId] || 0) + 1;
+        });
+        return acc;
+      }, {});
+
+      const rankedNominees = Object.entries(votesByNomineeId).map(([nomineeId, votes]) => {
+        const userInfo = usersById[nomineeId] || {};
+        const nomineeInfo = nomineesList.find((nominee) => nominee.id === nomineeId) || {};
+        return {
+          id: nomineeId,
+          name: userInfo.name || nomineeInfo.name || "Anónimo",
+          lastname: userInfo.lastname || nomineeInfo.lastname || "",
+          gender: userInfo.gender || nomineeInfo.gender || "",
+          votes: Number(votes || 0),
+          profilePhoto: userInfo.profilePhoto || userInfo.photo || nomineeInfo.profilePhoto || nomineeInfo.photo || "",
+          photo: userInfo.photo || userInfo.profilePhoto || nomineeInfo.photo || nomineeInfo.profilePhoto || "",
+        };
+      });
+
+      const chicoNominees = rankedNominees.filter((nominee) => {
         const gender = (nominee.gender || "").toLowerCase();
         return gender === "chico" || gender === "male";
       });
-      const chicaNominees = nomineesList.filter((nominee) => {
+      const chicaNominees = rankedNominees.filter((nominee) => {
         const gender = (nominee.gender || "").toLowerCase();
         return gender === "chica" || gender === "female";
       });
@@ -305,18 +334,10 @@ export default function Voter() {
       const topChico = [...chicoNominees].sort((a, b) => (b.votes || 0) - (a.votes || 0))[0] || null;
       const topChica = [...chicaNominees].sort((a, b) => (b.votes || 0) - (a.votes || 0))[0] || null;
 
-      const rankingByVotes = nomineesList.reduce((acc, nominee) => {
+      const rankingByVotes = rankedNominees.reduce((acc, nominee) => {
         const votes = Number(nominee.votes || 0);
         if (!acc[votes]) acc[votes] = [];
-        acc[votes].push({
-          id: nominee.id,
-          name: nominee.name || "Anónimo",
-          lastname: nominee.lastname || "",
-          gender: nominee.gender || "",
-          votes,
-          profilePhoto: nominee.profilePhoto || nominee.photo || "",
-          photo: nominee.photo || nominee.profilePhoto || "",
-        });
+        acc[votes].push(nominee);
         return acc;
       }, {});
 
@@ -521,7 +542,8 @@ export default function Voter() {
   const shouldPrepareStage = !!(userId && revealResult?.presenterIds?.includes(userId));
   const creatingQuestion = galaState.stage === "question";
   const showingQuestion = ["question", "waiting", "voting"].includes(galaState.stage);
-  const showWaitingForAdmin = alreadyJoined && !showingQuestion && galaState.stage !== "voting";
+  const isGameFinished = galaState.stage === "results";
+  const showWaitingForAdmin = alreadyJoined && !isGameFinished && !showingQuestion && galaState.stage !== "voting";
 
   return (
     <div
@@ -700,17 +722,7 @@ export default function Voter() {
 
       {alreadyJoined && galaState.stage === "waiting" && (
         <div style={{ marginTop: "40px" }}>
-          {questionDisplayText ? (
-            <>
-              <h2>Esperando apertura automática</h2>
-              <p style={{ fontWeight: "bold" }}>{questionDisplayText}</p>
-              <p style={{ marginTop: "12px" }}>La votación se abrirá sola sin intervención del admin.</p>
-            </>
-          ) : (
-            <h2 style={{ color: "white", lineHeight: 1.4 }}>
-              GRACIAS POR UNIR, ESPERA A QUE SE INICIE LA PARTIDA
-            </h2>
-          )}
+          <h2 style={{ marginBottom: "12px", color: "white" }}>CARGANDO...</h2>
         </div>
       )}
 
@@ -807,7 +819,7 @@ export default function Voter() {
                       fontSize: "13px",
                     }}
                   >
-                    {alreadyVotedThisGender ? `Ya votado ${genderLabel}` : `Votar ${genderLabel}`}
+                    {alreadyVotedThisGender ? "Ya votado" : "Votar"}
                   </button>
                 </div>
               );
@@ -820,7 +832,7 @@ export default function Voter() {
       {alreadyJoined && galaState.stage === "results" && (
         <div style={{ marginTop: "60px", color: "white", lineHeight: 1.4 }}>
           <h2>
-            ENHORABUENA SE HA FINALIZADO LA VOTACION, MIRA A LA PANTALLA DE ESPECTADOR
+            GRACIAS POR PARTICIPAR, MIRA A LA PANTALLA DE ESPECTADOR
           </h2>
           {shouldPrepareStage && (
             <p style={{ marginTop: "14px", color: "#facc15", fontWeight: 900 }}>

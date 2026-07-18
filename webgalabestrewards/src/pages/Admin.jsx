@@ -54,8 +54,7 @@ export default function Admin() {
     return () => unsubscribe();
   }, []);
 
-  const questionGender = galaState?.currentGenderRound || "chico";
-  const availableQuestions = getQuestionsForGender(questionGender);
+  const availableQuestions = getQuestionsForGender("all");
 
   // Iniciar gala automáticamente
   const startGala = async () => {
@@ -311,44 +310,62 @@ export default function Admin() {
 
   const currentQuestionText = galaState?.currentQuestionChico?.text || galaState?.currentQuestionChica?.text || galaState?.currentQuestion?.text || "(ninguna seleccionada)";
   const currentQuestionNumber = galaState?.currentQuestionNumber || 1;
-  const currentQuestionVoteKey = `q${currentQuestionNumber}`;
   const usersById = Object.fromEntries(users.map((user) => [user.id, user]));
 
-  const voteTrace = (() => {
+  const voteTraceByQuestion = (() => {
     if (!galaState?.currentCategory) return [];
+    const totalQuestions = galaState?.totalQuestions || TOTAL_QUESTIONS;
+    const questionBank = getQuestionsForGender("all");
 
-    return users
-      .map((user) => {
-        const categoryVotes = user.votedRounds?.[galaState.currentCategory] || {};
-        const qVotes = categoryVotes[currentQuestionVoteKey] || {};
-        const chicoTargetId = typeof qVotes.chico === "string" ? qVotes.chico : null;
-        const chicaTargetId = typeof qVotes.chica === "string" ? qVotes.chica : null;
+    return Array.from({ length: totalQuestions }, (_, index) => {
+      const questionNumber = index + 1;
+      const questionVoteKey = `q${questionNumber}`;
+      const fallbackQuestionText = questionBank.length
+        ? questionBank[(questionNumber - 1) % questionBank.length]?.text || ""
+        : "";
+      const resultQuestionText = galaState?.resultsByGender?.[questionVoteKey]?.questionText || "";
+      const questionText = resultQuestionText || fallbackQuestionText || `Pregunta ${questionNumber}`;
 
-        const chicoTargetName =
-          chicoTargetId && chicoTargetId !== "AUTO"
-            ? `${usersById[chicoTargetId]?.name || "Usuario"} ${usersById[chicoTargetId]?.lastname || ""}`.trim()
-            : chicoTargetId === "AUTO"
-              ? "AUTO"
-              : null;
+      const entries = users
+        .map((user) => {
+          const categoryVotes = user.votedRounds?.[galaState.currentCategory] || {};
+          const qVotes = categoryVotes[questionVoteKey] || {};
+          const chicoTargetId = typeof qVotes.chico === "string" ? qVotes.chico : null;
+          const chicaTargetId = typeof qVotes.chica === "string" ? qVotes.chica : null;
 
-        const chicaTargetName =
-          chicaTargetId && chicaTargetId !== "AUTO"
-            ? `${usersById[chicaTargetId]?.name || "Usuario"} ${usersById[chicaTargetId]?.lastname || ""}`.trim()
-            : chicaTargetId === "AUTO"
-              ? "AUTO"
-              : null;
+          const chicoTargetName =
+            chicoTargetId && chicoTargetId !== "AUTO"
+              ? `${usersById[chicoTargetId]?.name || "Usuario"} ${usersById[chicoTargetId]?.lastname || ""}`.trim()
+              : chicoTargetId === "AUTO"
+                ? "AUTO"
+                : null;
 
-        if (!chicoTargetName && !chicaTargetName) return null;
+          const chicaTargetName =
+            chicaTargetId && chicaTargetId !== "AUTO"
+              ? `${usersById[chicaTargetId]?.name || "Usuario"} ${usersById[chicaTargetId]?.lastname || ""}`.trim()
+              : chicaTargetId === "AUTO"
+                ? "AUTO"
+                : null;
 
-        const voterName = `${user.name || "Anónimo"} ${user.lastname || ""}`.trim();
-        return {
-          id: user.id,
-          voterName,
-          chicoTargetName,
-          chicaTargetName,
-        };
-      })
-      .filter(Boolean);
+          if (!chicoTargetName && !chicaTargetName) return null;
+
+          const voterName = `${user.name || "Anónimo"} ${user.lastname || ""}`.trim();
+          return {
+            id: `${user.id}-${questionVoteKey}`,
+            voterName,
+            chicoTargetName,
+            chicaTargetName,
+          };
+        })
+        .filter(Boolean);
+
+      return {
+        questionNumber,
+        questionVoteKey,
+        questionText,
+        entries,
+      };
+    });
   })();
 
   const currentScreenLabel = (user) => user.currentScreen || (user.connected ? "En la gala" : "Desconectado");
@@ -407,7 +424,7 @@ export default function Admin() {
 
             {showQuestions && (
               <div style={{ marginTop: "12px" }}>
-                <p style={{ color: "#94a3b8", marginTop: 0 }}>Mostrando preguntas para: {questionGender}</p>
+                <p style={{ color: "#94a3b8", marginTop: 0 }}>Mostrando preguntas desde questions.js</p>
                 {availableQuestions.length > 0 ? (
                   availableQuestions.map((question) => (
                     <div key={question.id} className="question-card" style={{ borderColor: selectedQuestionId === question.id ? "#38bdf8" : undefined }}>
@@ -428,20 +445,31 @@ export default function Admin() {
             )}
 
             <div style={{ marginTop: "14px" }}>
-              <h2>Quien voto a quien ({currentQuestionVoteKey})</h2>
+              <h2>Quien voto a quien por pregunta</h2>
               <div style={{ maxHeight: "26vh", overflowY: "auto", paddingRight: "4px" }}>
-                {voteTrace.length > 0 ? (
-                  voteTrace.map((entry) => (
-                    <div key={entry.id} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "10px 12px", marginBottom: "8px", color: "#e2e8f0", fontSize: "14px" }}>
-                      {entry.voterName}
-                      {entry.chicoTargetName ? ` voto a ${entry.chicoTargetName} (chico)` : ""}
-                      {entry.chicoTargetName && entry.chicaTargetName ? " | " : ""}
-                      {entry.chicaTargetName ? `voto a ${entry.chicaTargetName} (chica)` : ""}
+                {voteTraceByQuestion.some((group) => group.entries.length > 0) ? (
+                  voteTraceByQuestion.map((group) => (
+                    <div key={group.questionVoteKey} style={{ marginBottom: "12px", padding: "10px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}>
+                      <div style={{ color: "#93c5fd", fontWeight: 700, marginBottom: "6px" }}>
+                        P{group.questionNumber} ({group.questionVoteKey}): {group.questionText}
+                      </div>
+                      {group.entries.length > 0 ? (
+                        group.entries.map((entry) => (
+                          <div key={entry.id} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", padding: "8px 10px", marginBottom: "6px", color: "#e2e8f0", fontSize: "14px" }}>
+                            {entry.voterName}
+                            {entry.chicoTargetName ? ` voto a ${entry.chicoTargetName} (chico)` : ""}
+                            {entry.chicoTargetName && entry.chicaTargetName ? " | " : ""}
+                            {entry.chicaTargetName ? `voto a ${entry.chicaTargetName} (chica)` : ""}
+                          </div>
+                        ))
+                      ) : (
+                        <div style={{ color: "#94a3b8", fontSize: "13px" }}>Sin votos registrados en esta pregunta.</div>
+                      )}
                     </div>
                   ))
                 ) : (
                   <p style={{ color: "#94a3b8", marginTop: 0 }}>
-                    Aun no hay votos registrados para esta pregunta.
+                    Aun no hay votos registrados.
                   </p>
                 )}
               </div>

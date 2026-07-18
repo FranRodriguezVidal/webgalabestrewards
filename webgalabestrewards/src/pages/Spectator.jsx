@@ -37,6 +37,35 @@ export default function Spectator() {
     const isRevealModeActive = galaState?.revealModeActive === true;
     const [showBlockIndex, setShowBlockIndex] = useState(-1);
     const [closeCountdown, setCloseCountdown] = useState(null);
+    const [manualOpenUrl, setManualOpenUrl] = useState("");
+
+    const prepareNewTab = () => {
+        const newTab = window.open("about:blank", "_blank");
+        if (newTab) newTab.opener = null;
+        return newTab;
+    };
+
+    const openInNewTabWithFallback = (url) => {
+        const opened = window.open(url, "_blank", "noopener,noreferrer");
+        if (!opened) {
+            setManualOpenUrl(url);
+            alert("Safari ha bloqueado la nueva pestaña. Usa el enlace manual para abrirla.");
+        }
+    };
+
+    const completePreparedTab = (preparedTab, url) => {
+        if (preparedTab && !preparedTab.closed) {
+            preparedTab.location.href = url;
+            setManualOpenUrl("");
+            return;
+        }
+
+        const opened = window.open(url, "_blank", "noopener,noreferrer");
+        if (!opened) {
+            setManualOpenUrl(url);
+            alert("Safari ha bloqueado la nueva pestaña. Usa el enlace manual para abrirla.");
+        }
+    };
 
     const getGalaStatusLabel = () => {
         if (galaState?.stage === "voting") return "EN VOTACION";
@@ -104,7 +133,11 @@ export default function Spectator() {
             return;
         }
 
+        const preparedTab = prepareNewTab();
+
         try {
+            setManualOpenUrl("");
+
             const connectedUsersSnapshot = await getDocs(
                 query(collection(db, "users"), where("connected", "==", true))
             );
@@ -154,14 +187,17 @@ export default function Spectator() {
                 lastActionAt: serverTimestamp(),
             });
 
-            window.open(`${window.location.origin}/spectator?start=true`, "_blank", "noopener,noreferrer");
+            completePreparedTab(preparedTab, `${window.location.origin}/spectator?start=true`);
         } catch (error) {
+            if (preparedTab && !preparedTab.closed) preparedTab.close();
             console.warn("Error iniciando gala desde spectator:", error);
             alert("No se pudo iniciar la gala. Inténtalo otra vez.");
         }
     };
 
     const startRevealShow = async () => {
+        const preparedTab = prepareNewTab();
+
         await updateDoc(doc(db, "galaState", "state"), {
             revealModeActive: true,
             revealQuestionNumber: 1,
@@ -169,7 +205,7 @@ export default function Spectator() {
             lastActionAt: serverTimestamp(),
         });
 
-        window.open(`${window.location.origin}/spectator?show=results`, "_blank", "noopener,noreferrer");
+        completePreparedTab(preparedTab, `${window.location.origin}/spectator?show=results`);
     };
 
     const goToNextRevealQuestion = async () => {
@@ -1033,7 +1069,7 @@ export default function Spectator() {
                                         Show activo en pestaña aparte
                                     </p>
                                     <button
-                                        onClick={() => window.open(`${window.location.origin}/spectator?show=results`, "_blank", "noopener,noreferrer")}
+                                        onClick={() => openInNewTabWithFallback(`${window.location.origin}/spectator?show=results`)}
                                         style={{
                                             width: "min(100%, 340px)",
                                             padding: "12px 18px",
@@ -1048,6 +1084,12 @@ export default function Spectator() {
                                     >
                                         ABRIR PANTALLA SHOW
                                     </button>
+
+                                    {manualOpenUrl && (
+                                        <p style={{ margin: "10px 0 0", color: "#f8fafc", fontSize: "14px", wordBreak: "break-all" }}>
+                                            Enlace manual: <a href={manualOpenUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#93c5fd", fontWeight: 800 }}>Abrir pantalla</a>
+                                        </p>
+                                    )}
                                 </div>
                             )}
                         </div>

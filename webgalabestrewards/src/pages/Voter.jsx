@@ -23,6 +23,7 @@ import { getQuestionsForGender } from "../questions";
 export default function Voter() {
   const TOTAL_QUESTIONS = getQuestionsForGender("all").length || 5;
   const [userId, setUserId] = useState(null);
+  const [userSessionId, setUserSessionId] = useState(null);
   const [removedByAdmin, setRemovedByAdmin] = useState(false);
   const [galaState, setGalaState] = useState(null);
   const [connectedCandidates, setConnectedCandidates] = useState([]);
@@ -116,9 +117,14 @@ export default function Voter() {
     const unsubscribe = onSnapshot(
       userRef,
       async (snapshot) => {
-        if (snapshot.exists()) return;
+        if (snapshot.exists()) {
+          const userData = snapshot.data() || {};
+          setUserSessionId(userData.joinedSessionId || null);
+          return;
+        }
 
         setRemovedByAdmin(true);
+        setUserSessionId(null);
         sessionStorage.removeItem("voterId");
         setUserId(null);
 
@@ -163,7 +169,19 @@ export default function Voter() {
 
   // Comprobar si el usuario ya votó en la ronda actual
   useEffect(() => {
-    if (!userId || !galaState || !galaState.currentCategory) return;
+    const isSessionReadyForUser = !!(
+      userId &&
+      galaState?.galaStarted === true &&
+      galaState?.sessionId &&
+      userSessionId === galaState.sessionId
+    );
+
+    if (!isSessionReadyForUser || !galaState?.currentCategory) {
+      setHasVoted(false);
+      setHasVotedChico(false);
+      setHasVotedChica(false);
+      return;
+    }
 
     const checkVote = async () => {
       const userDoc = await getDoc(doc(db, "users", userId));
@@ -179,11 +197,18 @@ export default function Voter() {
     };
 
     checkVote();
-  }, [userId, galaState, questionVoteKey]);
+  }, [userId, userSessionId, galaState, questionVoteKey]);
 
   // Si falta un género en candidatos, marcar ese voto como completado automáticamente
   useEffect(() => {
-    if (!userId || !galaState || galaState.stage !== "voting" || !galaState.currentCategory) return;
+    const isSessionReadyForUser = !!(
+      userId &&
+      galaState?.galaStarted === true &&
+      galaState?.sessionId &&
+      userSessionId === galaState.sessionId
+    );
+
+    if (!isSessionReadyForUser || !galaState || galaState.stage !== "voting" || !galaState.currentCategory) return;
     if (!connectedCandidates.length) return;
 
     const hasChicoCandidates = connectedCandidates.some((candidate) => {
@@ -220,10 +245,18 @@ export default function Voter() {
     applyAutoPass().catch((error) => {
       console.warn("Error aplicando auto-pase por género faltante:", error);
     });
-  }, [userId, galaState, connectedCandidates, hasVotedChico, hasVotedChica, questionVoteKey]);
+  }, [userId, userSessionId, galaState, connectedCandidates, hasVotedChico, hasVotedChica, questionVoteKey]);
 
   // Crear automáticamente preguntas chico/chica cuando inicia la ronda
   useEffect(() => {
+    const isSessionReadyForUser = !!(
+      userId &&
+      galaState?.galaStarted === true &&
+      galaState?.sessionId &&
+      userSessionId === galaState.sessionId
+    );
+
+    if (!isSessionReadyForUser) return;
     if (!galaState || galaState.stage !== "question") return;
     if (galaState.currentQuestionChico && galaState.currentQuestionChica) return;
 
@@ -262,10 +295,18 @@ export default function Voter() {
     };
 
     publishQuestion();
-  }, [galaState, currentQuestionNumber, questionVoteKey, TOTAL_QUESTIONS]);
+  }, [userId, userSessionId, galaState, currentQuestionNumber, questionVoteKey, TOTAL_QUESTIONS]);
 
   // Abrir votación automáticamente cuando termina la pantalla de pregunta
   useEffect(() => {
+    const isSessionReadyForUser = !!(
+      userId &&
+      galaState?.galaStarted === true &&
+      galaState?.sessionId &&
+      userSessionId === galaState.sessionId
+    );
+
+    if (!isSessionReadyForUser) return;
     if (!galaState || galaState.stage !== "waiting" || !galaState.questionExpiresAt) return;
 
     const interval = setInterval(async () => {
@@ -285,10 +326,18 @@ export default function Voter() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [galaState, currentQuestionNumber, questionVoteKey, TOTAL_QUESTIONS]);
+  }, [userId, userSessionId, galaState, currentQuestionNumber, questionVoteKey, TOTAL_QUESTIONS]);
 
   // Cerrar votación automáticamente a los 2m30s o antes si todos votan ambos géneros
   useEffect(() => {
+    const isSessionReadyForUser = !!(
+      userId &&
+      galaState?.galaStarted === true &&
+      galaState?.sessionId &&
+      userSessionId === galaState.sessionId
+    );
+
+    if (!isSessionReadyForUser) return;
     if (!galaState || galaState.stage !== "voting" || !galaState.votingExpiresAt) return;
 
     const interval = setInterval(async () => {
@@ -345,7 +394,12 @@ export default function Voter() {
         return acc;
       }, {});
 
-      const rankedNominees = Object.entries(votesByNomineeId).map(([nomineeId, votes]) => {
+      const nomineeIdSet = new Set([
+        ...nomineesList.map((nominee) => nominee.id),
+        ...Object.keys(votesByNomineeId),
+      ]);
+
+      const rankedNominees = Array.from(nomineeIdSet).map((nomineeId) => {
         const userInfo = usersById[nomineeId] || {};
         const nomineeInfo = nomineesList.find((nominee) => nominee.id === nomineeId) || {};
         return {
@@ -353,7 +407,7 @@ export default function Voter() {
           name: userInfo.name || nomineeInfo.name || "Anónimo",
           lastname: userInfo.lastname || nomineeInfo.lastname || "",
           gender: userInfo.gender || nomineeInfo.gender || "",
-          votes: Number(votes || 0),
+          votes: Number(votesByNomineeId[nomineeId] || 0),
           profilePhoto: userInfo.profilePhoto || userInfo.photo || nomineeInfo.profilePhoto || nomineeInfo.photo || "",
           photo: userInfo.photo || userInfo.profilePhoto || nomineeInfo.photo || nomineeInfo.profilePhoto || "",
         };
@@ -368,8 +422,16 @@ export default function Voter() {
         return gender === "chica" || gender === "female";
       });
 
-      const topChico = [...chicoNominees].sort((a, b) => (b.votes || 0) - (a.votes || 0))[0] || null;
-      const topChica = [...chicaNominees].sort((a, b) => (b.votes || 0) - (a.votes || 0))[0] || null;
+      const sortForWinner = (a, b) => {
+        const byVotes = Number(b.votes || 0) - Number(a.votes || 0);
+        if (byVotes !== 0) return byVotes;
+        return `${a.name || ""} ${a.lastname || ""}`.localeCompare(`${b.name || ""} ${b.lastname || ""}`, "es", {
+          sensitivity: "base",
+        });
+      };
+
+      const topChico = [...chicoNominees].sort(sortForWinner)[0] || null;
+      const topChica = [...chicaNominees].sort(sortForWinner)[0] || null;
 
       const rankingByVotes = rankedNominees.reduce((acc, nominee) => {
         const votes = Number(nominee.votes || 0);
@@ -396,26 +458,23 @@ export default function Voter() {
       const totalQuestions = galaState?.totalQuestions || TOTAL_QUESTIONS;
       const isLastQuestion = currentQuestionNumber >= totalQuestions;
 
-      const baseResults = {
-        ...(galaState.resultsByGender || {}),
-        [questionVoteKey]: {
-          questionText: galaState.currentQuestionChico?.text || galaState.currentQuestionChica?.text || "",
-          chico: {
-            winnerId: topChico?.id || null,
-            winnerName: topChico?.name || null,
-            votes: topChico?.votes || 0,
-          },
-          chica: {
-            winnerId: topChica?.id || null,
-            winnerName: topChica?.name || null,
-            votes: topChica?.votes || 0,
-          },
-          rankingGroups,
-          winnerIds: winnersGroup.nominees.map((nominee) => nominee.id),
-          presenterIds,
-          categoryId: galaState.currentCategory || null,
-          closedAt: Date.now(),
+      const resultForQuestion = {
+        questionText: galaState.currentQuestionChico?.text || galaState.currentQuestionChica?.text || "",
+        chico: {
+          winnerId: topChico?.id || null,
+          winnerName: topChico?.name || null,
+          votes: topChico?.votes || 0,
         },
+        chica: {
+          winnerId: topChica?.id || null,
+          winnerName: topChica?.name || null,
+          votes: topChica?.votes || 0,
+        },
+        rankingGroups,
+        winnerIds: winnersGroup.nominees.map((nominee) => nominee.id),
+        presenterIds,
+        categoryId: galaState.currentCategory || null,
+        closedAt: Date.now(),
       };
 
       if (isLastQuestion) {
@@ -426,7 +485,7 @@ export default function Voter() {
           showPresenter: false,
           revealModeActive: false,
           revealQuestionNumber: 1,
-          resultsByGender: baseResults,
+          [`resultsByGender.${questionVoteKey}`]: resultForQuestion,
           lastActionAt: serverTimestamp(),
         });
         return;
@@ -453,19 +512,28 @@ export default function Voter() {
         showPresenter: false,
         revealModeActive: false,
         revealQuestionNumber: currentQuestionNumber,
-        resultsByGender: baseResults,
+        [`resultsByGender.${questionVoteKey}`]: resultForQuestion,
         lastActionAt: serverTimestamp(),
       });
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [galaState, currentQuestionNumber, questionVoteKey, TOTAL_QUESTIONS]);
+  }, [userId, userSessionId, galaState, currentQuestionNumber, questionVoteKey, TOTAL_QUESTIONS]);
 
   // Guardar pantalla actual para que el admin la vea
   useEffect(() => {
     if (!userId || !galaState) return;
 
+    const isSessionReadyForUser = !!(
+      galaState?.galaStarted === true &&
+      galaState?.sessionId &&
+      userSessionId === galaState.sessionId
+    );
+
     const getScreenLabel = () => {
+      if (!isSessionReadyForUser) {
+        return "Esperando inicio de gala";
+      }
       if (galaState.stage === "question") {
         return questionDisplayText ? "Pregunta lista" : "Ronda de pregunta";
       }
@@ -493,10 +561,22 @@ export default function Voter() {
     }).catch((error) => {
       console.warn("Error actualizando pantalla actual del usuario:", error);
     });
-  }, [userId, galaState, questionDisplayText, hasVoted]);
+  }, [userId, userSessionId, galaState, questionDisplayText, hasVoted]);
 
   // Función para votar
   const vote = async (candidate) => {
+    const isSessionReadyForUser = !!(
+      userId &&
+      galaState?.galaStarted === true &&
+      galaState?.sessionId &&
+      userSessionId === galaState.sessionId
+    );
+
+    if (!isSessionReadyForUser) {
+      alert("Aún no ha iniciado la gala para tu sesión. Espera a que el admin o spectator pulse Iniciar gala.");
+      return;
+    }
+
     if (!userId || hasVoted || galaState.stage !== "voting") return;
     if (!galaState.currentCategory) return;
     if (!candidate || !candidate.id) return;
@@ -573,14 +653,19 @@ export default function Voter() {
   if (!galaState) return <p>Cargando...</p>;
 
   const alreadyJoined = sessionStorage.getItem("voterId");
+  const isSessionReadyForUser = !!(
+    alreadyJoined &&
+    userId &&
+    galaState?.galaStarted === true &&
+    galaState?.sessionId &&
+    userSessionId === galaState.sessionId
+  );
   const revealQuestionNumber = galaState?.revealQuestionNumber || 1;
   const revealQuestionKey = `q${revealQuestionNumber}`;
   const revealResult = galaState?.resultsByGender?.[revealQuestionKey] || null;
-  const shouldPrepareStage = !!(userId && revealResult?.presenterIds?.includes(userId));
-  const creatingQuestion = galaState.stage === "question";
-  const showingQuestion = ["question", "waiting", "voting"].includes(galaState.stage);
-  const isGameFinished = galaState.stage === "results";
-  const showWaitingForAdmin = alreadyJoined && !isGameFinished && !showingQuestion && galaState.stage !== "voting";
+  const shouldPrepareStage = !!(isSessionReadyForUser && userId && revealResult?.presenterIds?.includes(userId));
+  const creatingQuestion = isSessionReadyForUser && galaState.stage === "question";
+  const showWaitingForAdmin = alreadyJoined && !isSessionReadyForUser;
 
   return (
     <div
@@ -757,13 +842,13 @@ export default function Voter() {
         </div>
       )}
 
-      {alreadyJoined && galaState.stage === "waiting" && (
+      {alreadyJoined && isSessionReadyForUser && galaState.stage === "waiting" && (
         <div style={{ marginTop: "40px" }}>
           <h2 style={{ marginBottom: "12px", color: "white" }}>CARGANDO...</h2>
         </div>
       )}
 
-      {alreadyJoined && galaState.stage === "voting" && !hasVoted && (
+      {alreadyJoined && isSessionReadyForUser && galaState.stage === "voting" && !hasVoted && (
         <div style={{ marginTop: "40px" }}>
           <h2>VOTACIÓN NÚMERO {currentQuestionNumber}</h2>
           {questionDisplayText && (
@@ -866,7 +951,7 @@ export default function Voter() {
       )}
 
       {/* YA VOTÓ */}
-      {alreadyJoined && galaState.stage === "results" && (
+      {alreadyJoined && isSessionReadyForUser && galaState.stage === "results" && (
         <div style={{ marginTop: "60px", color: "white", lineHeight: 1.4 }}>
           <h2>
             GRACIAS POR PARTICIPAR, MIRA A LA PANTALLA DE ESPECTADOR
@@ -879,7 +964,7 @@ export default function Voter() {
         </div>
       )}
 
-      {alreadyJoined && galaState.stage !== "results" && hasVoted && (
+      {alreadyJoined && isSessionReadyForUser && galaState.stage !== "results" && hasVoted && (
         <h2 style={{ marginTop: "60px", color: "white" }}>
           Ya emitiste tus 2 votos. Esperando resultados.
         </h2>

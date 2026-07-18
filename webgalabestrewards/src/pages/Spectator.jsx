@@ -135,6 +135,7 @@ export default function Spectator() {
         }
 
         const preparedTab = prepareNewTab();
+        const sessionId = Date.now();
 
         try {
             setManualOpenUrl("");
@@ -168,12 +169,22 @@ export default function Spectator() {
                     connected: true,
                     updatedAt: serverTimestamp(),
                 });
+
+                batch.update(doc(db, "users", userDoc.id), {
+                    joinedSessionId: sessionId,
+                    votedRounds: {},
+                    votes: 0,
+                    currentScreen: "Esperando inicio de gala",
+                    lastSeen: serverTimestamp(),
+                });
             });
 
             await batch.commit();
 
             await updateDoc(doc(db, "galaState", "state"), {
                 stage: "question",
+                galaStarted: true,
+                sessionId,
                 questionStatus: "creating",
                 currentQuestionNumber: 1,
                 totalQuestions: TOTAL_QUESTIONS,
@@ -1056,6 +1067,7 @@ export default function Spectator() {
                                         <p className="spectator-rules-text" style={{ margin: 0, fontSize: "17px", lineHeight: "1.55", fontWeight: "600", color: "#ffffff" }}>
                                             - Cada votación dura 2:30.
                                             <br />- Debes votar una vez en cada género chico/chica.
+                                            <br />- Lee bien antes de votar: si te equivocas en el voto, no hay vuelta atrás.
                                             <br />- Si no votas, se cuenta como voto en blanco y gana automáticamente el candidato con más votos.
                                             <br />- El menos votado será el encargado de entregar el trofeo si aplica.
                                         </p>

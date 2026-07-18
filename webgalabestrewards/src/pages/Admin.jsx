@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { db } from "../firebase";
-import { collection, onSnapshot, doc, updateDoc, serverTimestamp, getDocs, query, where, deleteDoc } from "firebase/firestore";
+import { collection, onSnapshot, doc, updateDoc, serverTimestamp, getDocs, query, where, deleteDoc, writeBatch } from "firebase/firestore";
 import { getQuestionsForGender } from "../questions";
 
 export default function Admin() {
@@ -8,6 +8,7 @@ export default function Admin() {
   const [galaState, setGalaState] = useState(null);
   const [users, setUsers] = useState([]);
   const [selectedQuestionId, setSelectedQuestionId] = useState(null);
+  const [selectedTraceQuestionNumber, setSelectedTraceQuestionNumber] = useState(1);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showQuestions, setShowQuestions] = useState(false);
   const TOTAL_QUESTIONS = getQuestionsForGender("all").length || 5;
@@ -58,8 +59,26 @@ export default function Admin() {
 
   // Iniciar gala automáticamente
   const startGala = async () => {
+    const sessionId = Date.now();
+    const usersSnapshot = await getDocs(query(collection(db, "users"), where("connected", "==", true)));
+    const batch = writeBatch(db);
+
+    usersSnapshot.forEach((userDoc) => {
+      batch.update(doc(db, "users", userDoc.id), {
+        joinedSessionId: sessionId,
+        votedRounds: {},
+        votes: 0,
+        currentScreen: "Esperando inicio de gala",
+        lastSeen: serverTimestamp(),
+      });
+    });
+
+    await batch.commit();
+
     await updateDoc(doc(db, "galaState", "state"), {
       stage: "question",
+      galaStarted: true,
+      sessionId,
       currentCategory: galaState?.currentCategory || categories[0]?.id || null,
       questionStatus: "creating",
       currentQuestionNumber: 1,
@@ -368,6 +387,9 @@ export default function Admin() {
     });
   })();
 
+  const selectedQuestionTrace =
+    voteTraceByQuestion.find((group) => group.questionNumber === selectedTraceQuestionNumber) || null;
+
   const currentScreenLabel = (user) => user.currentScreen || (user.connected ? "En la gala" : "Desconectado");
 
   if (!galaState) return <p>Cargando...</p>;
@@ -426,18 +448,53 @@ export default function Admin() {
               <div style={{ marginTop: "12px" }}>
                 <p style={{ color: "#94a3b8", marginTop: 0 }}>Mostrando preguntas desde questions.js</p>
                 {availableQuestions.length > 0 ? (
-                  availableQuestions.map((question) => (
-                    <div key={question.id} className="question-card" style={{ borderColor: selectedQuestionId === question.id ? "#38bdf8" : undefined }}>
+                  availableQuestions.map((question, index) => {
+                    const questionNumber = index + 1;
+                    const questionKey = `q${questionNumber}`;
+                    const traceGroup = voteTraceByQuestion.find((group) => group.questionNumber === questionNumber);
+                    const isTraceSelected = selectedTraceQuestionNumber === questionNumber;
+
+                    return (
+                    <div key={question.id} className="question-card" style={{ borderColor: selectedQuestionId === question.id || isTraceSelected ? "#38bdf8" : undefined }}>
+                      <p style={{ margin: "0 0 6px", fontSize: "13px", color: "#93c5fd", fontWeight: 700 }}>
+                        P{questionNumber} ({questionKey})
+                      </p>
                       <p style={{ margin: 0, fontSize: "16px", color: "#e2e8f0" }}>{question.text}</p>
-                      <button
-                        className="admin-button button-primary question-button"
-                        onClick={() => selectQuestion(question)}
-                        style={{ marginTop: "12px" }}
-                      >
-                        Seleccionar pregunta
-                      </button>
+                      <div className="button-row" style={{ marginTop: "12px" }}>
+                        <button
+                          className="admin-button button-secondary"
+                          onClick={() => setSelectedTraceQuestionNumber(questionNumber)}
+                        >
+                          Ver votos P{questionNumber}
+                        </button>
+                        <button
+                          className="admin-button button-primary question-button"
+                          onClick={() => selectQuestion(question)}
+                        >
+                          Seleccionar pregunta
+                        </button>
+                      </div>
+
+                      {isTraceSelected && (
+                        <div style={{ marginTop: "10px", borderTop: "1px solid rgba(255,255,255,0.12)", paddingTop: "10px" }}>
+                          <p style={{ margin: "0 0 6px", color: "#cbd5e1", fontSize: "13px" }}>Trazas de voto</p>
+                          {traceGroup?.entries?.length > 0 ? (
+                            traceGroup.entries.map((entry) => (
+                              <div key={entry.id} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", padding: "8px 10px", marginBottom: "6px", color: "#e2e8f0", fontSize: "14px" }}>
+                                {entry.voterName}
+                                {entry.chicoTargetName ? ` voto a ${entry.chicoTargetName} (chico)` : ""}
+                                {entry.chicoTargetName && entry.chicaTargetName ? " | " : ""}
+                                {entry.chicaTargetName ? `voto a ${entry.chicaTargetName} (chica)` : ""}
+                              </div>
+                            ))
+                          ) : (
+                            <div style={{ color: "#94a3b8", fontSize: "13px" }}>Sin votos registrados en esta pregunta.</div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div style={{ color: "#94a3b8" }}>No hay preguntas para esta ronda.</div>
                 )}
@@ -446,6 +503,9 @@ export default function Admin() {
 
             <div style={{ marginTop: "14px" }}>
               <h2>Quien voto a quien por pregunta</h2>
+              <p style={{ marginTop: 0, color: "#94a3b8", fontSize: "13px" }}>
+                Mostrando detalle de P{selectedTraceQuestionNumber}: {selectedQuestionTrace?.questionText || "-"}
+              </p>
               <div style={{ maxHeight: "26vh", overflowY: "auto", paddingRight: "4px" }}>
                 {voteTraceByQuestion.some((group) => group.entries.length > 0) ? (
                   voteTraceByQuestion.map((group) => (

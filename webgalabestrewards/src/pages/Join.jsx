@@ -185,6 +185,7 @@ export default function Join() {
         profilePhoto: profilePhotoName,
         winnerPhoto: winnerPhotoName,
         role: "voter",
+        joinedSessionId: null,
         connected: true,
         lastSeen: serverTimestamp(),
         votes: 0,

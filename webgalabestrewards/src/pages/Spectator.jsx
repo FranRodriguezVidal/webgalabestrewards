@@ -243,6 +243,11 @@ export default function Spectator() {
         return currentTime.getTime() - lastSeenDate.getTime() <= 15000;
     };
 
+    const usersById = useMemo(
+        () => Object.fromEntries(users.map((user) => [user.id, user])),
+        [users]
+    );
+
     const normalizeNominee = (nominee = {}) => ({
         id: nominee.id,
         name: nominee.name || "Anónimo",
@@ -250,8 +255,20 @@ export default function Spectator() {
         gender: nominee.gender || "",
         profilePhoto: nominee.profilePhoto || nominee.photo || "",
         photo: nominee.photo || nominee.profilePhoto || "",
+        winnerPhoto: nominee.winnerPhoto || "",
         votes: Number(nominee.votes || 0),
     });
+
+    const getNomineeImageUrl = (nominee, options = {}) => {
+        const preferWinnerPhoto = options.preferWinnerPhoto === true;
+        const userRecord = usersById[nominee?.id] || {};
+        const winnerPhoto = nominee?.winnerPhoto || userRecord?.winnerPhoto || "";
+        const profilePhoto = nominee?.profilePhoto || nominee?.photo || userRecord?.profilePhoto || userRecord?.photo || "";
+        const imageName = preferWinnerPhoto ? (winnerPhoto || profilePhoto) : (profilePhoto || winnerPhoto);
+        return imageName
+            ? `https://gala-backend.franrvguijo.workers.dev/image/${imageName}`
+            : "https://via.placeholder.com/200?text=No+img";
+    };
 
     const sortNomineesByName = (a, b) =>
         `${a.name || ""} ${a.lastname || ""}`.localeCompare(`${b.name || ""} ${b.lastname || ""}`, "es", {
@@ -336,12 +353,23 @@ export default function Spectator() {
             ...chicaPositions.map((group) => group.position),
         ])).sort((a, b) => b - a);
 
-        return allPositions.map((position) => ({
+        const positionBlocks = allPositions.map((position) => ({
             type: "position",
             position,
             chicoGroup: chicoPositions.find((group) => group.position === position) || null,
             chicaGroup: chicaPositions.find((group) => group.position === position) || null,
         }));
+
+        if (!positionBlocks.length) return [];
+
+        return [
+            ...positionBlocks,
+            {
+                type: "fullSummary",
+                chicoPositions,
+                chicaPositions,
+            },
+        ];
     }, [genderRankingGroupsDesc]);
 
     useEffect(() => {
@@ -593,7 +621,7 @@ export default function Spectator() {
                                             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent)", animation: `shimmerSweep 2.2s ease ${0.6 + idx * 0.08}s` }} />
                                         </div>
                                         <img
-                                            src={nominee.profilePhoto ? `https://gala-backend.franrvguijo.workers.dev/image/${nominee.profilePhoto}` : "https://via.placeholder.com/130?text=No+img"}
+                                            src={getNomineeImageUrl(nominee)}
                                             alt={nominee.name}
                                             style={{ width: "110px", height: "110px", borderRadius: "18px", objectFit: "cover", border: "1px solid rgba(255,255,255,0.3)" }}
                                             onError={(event) => {
@@ -643,7 +671,7 @@ export default function Spectator() {
                                                     {column.group.nominees.map((nominee, idx) => (
                                                 <div key={nominee.id} style={{ width: activeBlock.position === 1 ? "clamp(138px, 27vw, 190px)" : "clamp(108px, 22vw, 150px)", animation: `nomineePop 0.8s ease ${idx * 0.12}s both` }}>
                                                     <img
-                                                        src={nominee.profilePhoto ? `https://gala-backend.franrvguijo.workers.dev/image/${nominee.profilePhoto}` : "https://via.placeholder.com/200?text=No+img"}
+                                                        src={getNomineeImageUrl(nominee, { preferWinnerPhoto: activeBlock.position === 1 })}
                                                         alt={nominee.name}
                                                         style={{
                                                             width: "100%",
@@ -668,6 +696,69 @@ export default function Spectator() {
                                             <div style={{ color: "#94a3b8", fontSize: "18px", fontWeight: 700, marginTop: "60px" }}>
                                                 Sin {column.label.toLowerCase()} en este puesto
                                             </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    {!showFinished && activeBlock?.type === "fullSummary" && (
+                        <div style={{ animation: "cinematicFade 1s ease" }}>
+                            <p style={{ margin: "0 0 10px", fontSize: "clamp(28px, 6vw, 46px)", color: "#fde68a", fontWeight: 900 }}>
+                                CLASIFICACION COMPLETA
+                            </p>
+                            <p style={{ margin: "0 0 20px", fontSize: "clamp(15px, 3vw, 20px)", color: "#cbd5e1", fontWeight: 700 }}>
+                                Todos los nominados con su puesto final por genero
+                            </p>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "18px" }}>
+                                {[
+                                    { label: "CHICO", accent: "#38bdf8", groups: activeBlock.chicoPositions || [] },
+                                    { label: "CHICA", accent: "#f472b6", groups: activeBlock.chicaPositions || [] },
+                                ].map((column) => (
+                                    <div
+                                        key={`summary-${column.label}`}
+                                        style={{
+                                            background: "rgba(15,23,42,0.78)",
+                                            border: `2px solid ${column.accent}`,
+                                            borderRadius: "22px",
+                                            padding: "18px",
+                                            textAlign: "left",
+                                        }}
+                                    >
+                                        <p style={{ margin: "0 0 14px", color: column.accent, fontSize: "28px", fontWeight: 900, textAlign: "center" }}>
+                                            {column.label}
+                                        </p>
+                                        {column.groups.length > 0 ? (
+                                            column.groups.map((group) => (
+                                                <div key={`${column.label}-${group.position}`} style={{ marginBottom: "14px", padding: "12px", borderRadius: "16px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)" }}>
+                                                    <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", alignItems: "center", marginBottom: "10px" }}>
+                                                        <span style={{ color: "#f8fafc", fontWeight: 900, fontSize: "20px" }}>
+                                                            {group.position === 1 ? "1º PUESTO" : `${group.position}º PUESTO`}
+                                                        </span>
+                                                        <span style={{ color: "#fde68a", fontWeight: 800 }}>{group.votes} votos</span>
+                                                    </div>
+                                                    <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center" }}>
+                                                        {group.nominees.map((nominee) => (
+                                                            <div key={`summary-${column.label}-${group.position}-${nominee.id}`} style={{ width: "92px", textAlign: "center" }}>
+                                                                <img
+                                                                    src={getNomineeImageUrl(nominee, { preferWinnerPhoto: group.position === 1 })}
+                                                                    alt={nominee.name}
+                                                                    style={{ width: "92px", height: "92px", borderRadius: "16px", objectFit: "cover", border: `2px solid ${group.position === 1 ? "#fde68a" : "rgba(255,255,255,0.28)"}` }}
+                                                                    onError={(event) => {
+                                                                        event.currentTarget.onerror = null;
+                                                                        event.currentTarget.src = "https://via.placeholder.com/92?text=No+img";
+                                                                    }}
+                                                                />
+                                                                <p style={{ margin: "8px 0 0", fontSize: "14px", fontWeight: 800, color: "#f8fafc" }}>
+                                                                    {nominee.name}
+                                                                </p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div style={{ color: "#94a3b8", fontWeight: 700, textAlign: "center" }}>Sin clasificacion</div>
                                         )}
                                     </div>
                                 ))}

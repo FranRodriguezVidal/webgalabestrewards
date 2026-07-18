@@ -588,4 +588,22 @@ svg {
   }
 }
 
+/* Mobile hard override: always stack the 3 mode buttons vertically */
+@media (hover: none) and (pointer: coarse) and (max-width: 920px) {
+  .home-actions-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+
+  .home-actions-grid .home-action-admin {
+    grid-column: auto !important;
+  }
+
+  .home-action-card {
+    width: 100% !important;
+    min-height: 124px !important;
+  }
+}
+
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { db } from "../firebase";
 import { getQuestionsForGender } from "../questions";
@@ -250,7 +250,7 @@ export default function Spectator() {
         });
     };
 
-    const resetGalaAfterShow = async () => {
+    const resetGalaAfterShow = useCallback(async () => {
         const [usersSnapshot, nomineesSnapshot] = await Promise.all([
             getDocs(collection(db, "users")),
             getDocs(collection(db, "nominees")),
@@ -290,7 +290,7 @@ export default function Spectator() {
         });
 
         await batch.commit();
-    };
+    }, [TOTAL_QUESTIONS]);
 
     const connectedUsersForDisplay = useMemo(() => {
         const nowMs = currentTime.getTime();
@@ -488,7 +488,7 @@ export default function Spectator() {
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [isShowScreen, galaState?.revealFinishedAt]);
+    }, [isShowScreen, galaState?.revealFinishedAt, resetGalaAfterShow]);
 
     // Hora actual en tiempo real
     useEffect(() => {

@@ -232,6 +232,67 @@ export default function Join() {
             from { opacity: 0; transform: scale(0.9); }
             to { opacity: 1; transform: scale(1); }
           }
+
+          @keyframes joinPanelIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+          }
+
+          @keyframes joinGlow {
+            0% { box-shadow: 0 20px 48px rgba(18, 24, 58, 0.28); }
+            50% { box-shadow: 0 24px 58px rgba(18, 24, 58, 0.38); }
+            100% { box-shadow: 0 20px 48px rgba(18, 24, 58, 0.28); }
+          }
+
+          .join-panel {
+            animation: joinPanelIn 0.7s ease, joinGlow 5s ease-in-out infinite;
+          }
+
+          .join-input {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.18);
+            outline: none;
+            background: rgba(255,255,255,0.88);
+            color: #14213d;
+            font-size: 16px;
+            font-weight: 600;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 10px 24px rgba(15,23,42,0.14);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+          }
+
+          .join-input:focus {
+            border-color: rgba(250,204,21,0.92);
+            box-shadow: 0 0 0 3px rgba(250,204,21,0.22), 0 16px 28px rgba(15,23,42,0.18);
+            transform: translateY(-1px);
+          }
+
+          .join-input::placeholder {
+            color: #64748b;
+            font-weight: 500;
+          }
+
+          .join-upload {
+            width: 100%;
+            padding: 12px;
+            border-radius: 16px;
+            border: 1px dashed rgba(255,255,255,0.34);
+            background: rgba(9, 14, 30, 0.24);
+            color: white;
+            backdrop-filter: blur(8px);
+          }
+
+          .join-upload::-webkit-file-upload-button {
+            margin-right: 12px;
+            padding: 10px 14px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #facc15, #fb7185);
+            color: #111827;
+            font-weight: 800;
+            cursor: pointer;
+          }
         `}
       </style>
 
@@ -256,37 +317,81 @@ export default function Join() {
       </button>
 
       <div
+        className="join-panel"
         style={{
           width: "100%",
-          maxWidth: "420px",
-          background: "rgba(255,255,255,0.10)",
-          borderRadius: "20px",
-          padding: "25px 20px",
-          border: "1px solid rgba(255,255,255,0.24)",
-          boxShadow: "0 0 28px rgba(0,0,0,0.26)",
-          backdropFilter: "blur(16px)",
+          maxWidth: "460px",
+          background: "linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.08))",
+          borderRadius: "28px",
+          padding: "28px 24px",
+          border: "1px solid rgba(255,255,255,0.28)",
+          boxShadow: "0 20px 48px rgba(0,0,0,0.26)",
+          backdropFilter: "blur(18px)",
+          position: "relative",
+          overflow: "hidden",
         }}
       >
+        <div
+          style={{
+            position: "absolute",
+            top: "-20%",
+            right: "-10%",
+            width: "180px",
+            height: "180px",
+            borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(244,114,182,0.35), transparent 68%)",
+            pointerEvents: "none",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            bottom: "-18%",
+            left: "-8%",
+            width: "170px",
+            height: "170px",
+            borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(56,189,248,0.30), transparent 70%)",
+            pointerEvents: "none",
+          }}
+        />
+
+        <div style={{ position: "relative", zIndex: 1 }}>
         <h1
           style={{
             color: "white",
-            textShadow: "0 0 10px white",
-            fontSize: "24px",
-            marginBottom: "10px",
+            textShadow: "0 0 14px rgba(255,255,255,0.52)",
+            fontSize: "28px",
+            lineHeight: 1.1,
+            marginBottom: "8px",
+            letterSpacing: "0.01em",
           }}
         >
           Unirse a la Gala Best Rewards
         </h1>
 
+        <p
+          style={{
+            margin: "0 0 18px",
+            color: "rgba(255,255,255,0.84)",
+            fontSize: "14px",
+            lineHeight: 1.5,
+            fontWeight: 600,
+          }}
+        >
+          Completa tus datos, elige tu perfil y sube las dos fotos para entrar con una imagen mucho más cuidada a la gala.
+        </p>
+
         {error && (
           <div
             style={{
-              background: "rgba(255,0,0,0.4)",
-              padding: "10px",
-              borderRadius: "10px",
+              background: "rgba(239,68,68,0.28)",
+              padding: "12px 14px",
+              borderRadius: "14px",
+              border: "1px solid rgba(254,202,202,0.35)",
               color: "white",
               fontWeight: "bold",
-              marginBottom: "10px",
+              marginBottom: "12px",
               whiteSpace: "pre-wrap",
               textAlign: "left",
             }}
@@ -298,9 +403,10 @@ export default function Join() {
         {debugInfo && (
           <div
             style={{
-              background: "rgba(0,0,0,0.5)",
-              padding: "10px",
-              borderRadius: "10px",
+              background: "rgba(0,0,0,0.44)",
+              padding: "12px",
+              borderRadius: "14px",
+              border: "1px solid rgba(255,255,255,0.14)",
               color: "white",
               fontSize: "12px",
               lineHeight: "1.4",
@@ -319,12 +425,12 @@ export default function Join() {
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "12px",
+            gap: "14px",
             marginTop: "10px",
           }}
         >
           {/* Nombre */}
-          <div style={{ textAlign: "left", color: "white", fontSize: "14px" }}>
+          <div style={{ textAlign: "left", color: "white", fontSize: "13px", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
             🧑 Nombre
           </div>
           <input
@@ -332,17 +438,11 @@ export default function Join() {
             placeholder="Nombre"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            style={{
-              padding: "12px",
-              fontSize: "16px",
-              borderRadius: "12px",
-              border: "none",
-              width: "92%",
-            }}
+            className="join-input"
           />
 
           {/* Apellidos */}
-          <div style={{ textAlign: "left", color: "white", fontSize: "14px" }}>
+          <div style={{ textAlign: "left", color: "white", fontSize: "13px", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
             👤 Apellidos
           </div>
           <input
@@ -350,17 +450,11 @@ export default function Join() {
             placeholder="Apellidos"
             value={lastname}
             onChange={(e) => setLastname(e.target.value)}
-            style={{
-              padding: "12px",
-              fontSize: "16px",
-              borderRadius: "12px",
-              border: "none",
-              width: "92%",
-            }}
+            className="join-input"
           />
 
           {/* Selector de género */}
-          <div style={{ textAlign: "left", color: "white", fontSize: "14px" }}>
+          <div style={{ textAlign: "left", color: "white", fontSize: "13px", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
             ⚧ Sexo
           </div>
 
@@ -376,23 +470,27 @@ export default function Join() {
             <button
               onClick={() => setGender("male")}
               style={{
-                padding: "12px 20px",
-                borderRadius: "12px",
+                flex: 1,
+                padding: "14px 16px",
+                borderRadius: "16px",
                 border:
                   gender === "male"
                     ? "2px solid rgba(56,189,248,0.95)"
                     : "2px solid rgba(255,255,255,0.3)",
                 background:
                   gender === "male"
-                    ? "rgba(56,189,248,0.22)"
-                    : "rgba(255,255,255,0.15)",
+                    ? "linear-gradient(135deg, rgba(56,189,248,0.34), rgba(37,99,235,0.22))"
+                    : "rgba(255,255,255,0.14)",
                 color: "white",
                 cursor: "pointer",
                 fontSize: "16px",
+                fontWeight: 800,
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "center",
                 gap: "8px",
                 backdropFilter: "blur(6px)",
+                boxShadow: gender === "male" ? "0 14px 26px rgba(56,189,248,0.22)" : "none",
                 transition: "all 0.3s ease",
               }}
             >
@@ -402,23 +500,27 @@ export default function Join() {
             <button
               onClick={() => setGender("female")}
               style={{
-                padding: "12px 20px",
-                borderRadius: "12px",
+                flex: 1,
+                padding: "14px 16px",
+                borderRadius: "16px",
                 border:
                   gender === "female"
                     ? "2px solid rgba(244,114,182,0.95)"
                     : "2px solid rgba(255,255,255,0.3)",
                 background:
                   gender === "female"
-                    ? "rgba(244,114,182,0.22)"
-                    : "rgba(255,255,255,0.15)",
+                    ? "linear-gradient(135deg, rgba(244,114,182,0.34), rgba(190,24,93,0.22))"
+                    : "rgba(255,255,255,0.14)",
                 color: "white",
                 cursor: "pointer",
                 fontSize: "16px",
+                fontWeight: 800,
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "center",
                 gap: "8px",
                 backdropFilter: "blur(6px)",
+                boxShadow: gender === "female" ? "0 14px 26px rgba(244,114,182,0.22)" : "none",
                 transition: "all 0.3s ease",
               }}
             >
@@ -431,7 +533,10 @@ export default function Join() {
             style={{
               textAlign: "left",
               color: "white",
-              fontSize: "14px",
+              fontSize: "13px",
+              fontWeight: 800,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
               display: "flex",
               alignItems: "center",
               gap: "8px",
@@ -455,41 +560,52 @@ export default function Join() {
             type="file"
             accept="image/*,.heic,.heif,.jpeg,.jpg,.png,.webp,.bmp,.tiff,.avif"
             onChange={(e) => setProfileFile(e.target.files[0])}
-            style={{ width: "100%" }}
+            className="join-upload"
           />
+          <div style={{ marginTop: "-8px", textAlign: "left", color: "rgba(255,255,255,0.72)", fontSize: "12px", fontWeight: 600 }}>
+            {profileFile ? `Seleccionada: ${profileFile.name}` : "Elige una foto clara y centrada para tu perfil."}
+          </div>
 
           {/* Foto para ganador */}
-          <div style={{ textAlign: "left", color: "white", fontSize: "14px" }}>
+          <div style={{ textAlign: "left", color: "white", fontSize: "13px", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
             🏆 Foto para Ganador
           </div>
           <input
             type="file"
             accept="image/*,.heic,.heif,.jpeg,.jpg,.png,.webp,.bmp,.tiff,.avif"
             onChange={(e) => setWinnerFile(e.target.files[0])}
-            style={{ width: "100%" }}
+            className="join-upload"
           />
+          <div style={{ marginTop: "-8px", textAlign: "left", color: "rgba(255,255,255,0.72)", fontSize: "12px", fontWeight: 600 }}>
+            {winnerFile ? `Seleccionada: ${winnerFile.name}` : "Esta foto se usará si sales ganador o ganadora."}
+          </div>
 
           {/* Botón entrar */}
           <button
             onClick={joinGala}
             disabled={isLoading}
             style={{
-              padding: "14px",
+              padding: "16px",
               fontSize: "18px",
-              background: isLoading ? "rgba(255,215,0,0.5)" : "gold",
+              fontWeight: 900,
+              letterSpacing: "0.03em",
+              background: isLoading ? "rgba(250,204,21,0.45)" : "linear-gradient(135deg, #facc15, #fb7185)",
               border: "none",
-              borderRadius: "14px",
+              borderRadius: "18px",
               cursor: isLoading ? "default" : "pointer",
-              boxShadow: "0 0 20px gold",
-              marginTop: "10px",
+              boxShadow: isLoading ? "none" : "0 18px 32px rgba(251,113,133,0.34)",
+              marginTop: "12px",
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
               gap: "10px",
+              color: "#111827",
+              transition: "transform 0.25s ease, box-shadow 0.25s ease",
             }}
           >
             {isLoading ? "Subiendo..." : "🚀 Entrar"}
           </button>
+        </div>
         </div>
       </div>
 

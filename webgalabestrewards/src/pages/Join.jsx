@@ -209,6 +209,7 @@ export default function Join() {
 
   return (
     <div
+      className="join-shell"
       style={{
         padding: "20px",
         textAlign: "center",
@@ -246,6 +247,26 @@ export default function Join() {
 
           .join-panel {
             animation: joinPanelIn 0.7s ease, joinGlow 5s ease-in-out infinite;
+          }
+
+          .join-title {
+            font-size: 28px;
+          }
+
+          .join-subtitle {
+            font-size: 14px;
+          }
+
+          .join-gender-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 10px;
+            margin-top: 5px;
+            justify-content: center;
+          }
+
+          .join-gender-button {
+            flex: 1;
           }
 
           .join-input {
@@ -293,11 +314,85 @@ export default function Join() {
             font-weight: 800;
             cursor: pointer;
           }
+
+          @media (max-width: 768px) {
+            .join-shell {
+              padding: 16px !important;
+              align-items: flex-start !important;
+              overflow-y: auto !important;
+            }
+
+            .join-exit-button {
+              top: 12px !important;
+              right: 12px !important;
+              width: auto !important;
+              padding: 8px 14px !important;
+              font-size: 13px !important;
+            }
+
+            .join-panel {
+              max-width: 420px !important;
+              border-radius: 22px !important;
+              padding: 22px 16px !important;
+              margin-top: 54px;
+            }
+
+            .join-title {
+              font-size: 24px !important;
+            }
+
+            .join-subtitle {
+              font-size: 13px !important;
+              margin-bottom: 16px !important;
+            }
+
+            .join-gender-button {
+              min-width: 0;
+              padding: 12px 12px !important;
+              font-size: 15px !important;
+            }
+
+            .join-input {
+              padding: 12px 14px;
+              border-radius: 14px;
+              font-size: 15px;
+            }
+
+            .join-upload {
+              padding: 10px;
+              font-size: 13px;
+            }
+          }
+
+          @media (max-width: 430px) {
+            .join-shell {
+              padding: 14px !important;
+            }
+
+            .join-panel {
+              max-width: 100% !important;
+              padding: 20px 14px !important;
+            }
+
+            .join-title {
+              font-size: 22px !important;
+            }
+
+            .join-gender-row {
+              gap: 8px;
+            }
+
+            .join-gender-button {
+              padding: 12px 10px !important;
+              font-size: 14px !important;
+            }
+          }
         `}
       </style>
 
       {/* Botón salir arriba derecha */}
       <button
+        className="join-exit-button"
         onClick={exitPage}
         style={{
           position: "absolute",
@@ -320,7 +415,7 @@ export default function Join() {
         className="join-panel"
         style={{
           width: "100%",
-          maxWidth: "460px",
+          maxWidth: "420px",
           background: "linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.08))",
           borderRadius: "28px",
           padding: "28px 24px",
@@ -358,6 +453,7 @@ export default function Join() {
 
         <div style={{ position: "relative", zIndex: 1 }}>
         <h1
+          className="join-title"
           style={{
             color: "white",
             textShadow: "0 0 14px rgba(255,255,255,0.52)",
@@ -371,6 +467,7 @@ export default function Join() {
         </h1>
 
         <p
+          className="join-subtitle"
           style={{
             margin: "0 0 18px",
             color: "rgba(255,255,255,0.84)",
@@ -384,6 +481,7 @@ export default function Join() {
 
         {error && (
           <div
+            className="join-gender-row"
             style={{
               background: "rgba(239,68,68,0.28)",
               padding: "12px 14px",
@@ -468,6 +566,7 @@ export default function Join() {
             }}
           >
             <button
+              className="join-gender-button"
               onClick={() => setGender("male")}
               style={{
                 flex: 1,
@@ -498,6 +597,7 @@ export default function Join() {
             </button>
 
             <button
+              className="join-gender-button"
               onClick={() => setGender("female")}
               style={{
                 flex: 1,

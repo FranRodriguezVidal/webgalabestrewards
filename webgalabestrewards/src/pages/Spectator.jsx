@@ -250,18 +250,17 @@ export default function Spectator() {
         });
     };
 
-    const isUserConnected = (user) => {
-        if (user.connected === true) return true;
-        if (!user.lastSeen) return false;
+    const connectedUsersForDisplay = useMemo(() => {
+        const nowMs = currentTime.getTime();
 
-        const lastSeenDate = user.lastSeen.toDate ? user.lastSeen.toDate() : new Date(user.lastSeen);
-        return currentTime.getTime() - lastSeenDate.getTime() <= 15000;
-    };
+        return users.filter((user) => {
+            if (user.connected === true) return true;
+            if (!user.lastSeen) return false;
 
-    const connectedUsersForDisplay = useMemo(
-        () => users.filter((user) => isUserConnected(user)),
-        [users, currentTime]
-    );
+            const lastSeenDate = user.lastSeen.toDate ? user.lastSeen.toDate() : new Date(user.lastSeen);
+            return nowMs - lastSeenDate.getTime() <= 15000;
+        });
+    }, [users, currentTime]);
 
     const usersById = useMemo(
         () => Object.fromEntries(users.map((user) => [user.id, user])),
@@ -1167,7 +1166,6 @@ export default function Spectator() {
     }}
 >
     {connectedUsersForDisplay.map((user) => {
-        const isConnected = isUserConnected(user);
         return (
             <div
                 key={user.id}
@@ -1205,7 +1203,7 @@ export default function Spectator() {
                             width: "14px",
                             height: "14px",
                             borderRadius: "50%",
-                            background: isConnected ? "#00ff4c" : "#ff2e2e",
+                            background: "#00ff4c",
                             border: "2px solid black",
                         }}
                     ></span>

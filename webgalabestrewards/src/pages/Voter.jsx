@@ -149,13 +149,13 @@ export default function Voter() {
           console.warn("Error cerrando sesion tras eliminacion por admin:", error);
         }
 
-        alert("El admin cerro tu conexion. Esta pestaña se cerrara.");
-
-        // Solo funciona si la pestaña fue abierta por script; si no, redirigimos.
-        window.close();
-        setTimeout(() => {
+        if (galaState?.revealFinishedAt) {
           window.location.href = "/";
-        }, 150);
+          return;
+        }
+
+        alert("El admin cerro tu conexion. Esta pestaña se cerrara.");
+        window.location.href = "/";
       },
       (error) => {
         console.warn("Error escuchando eliminacion de usuario:", error);
@@ -163,7 +163,7 @@ export default function Voter() {
     );
 
     return () => unsubscribe();
-  }, [userId, removedByAdmin]);
+  }, [userId, removedByAdmin, galaState?.revealFinishedAt]);
 
   // Cargar todos los usuarios para votar (sin incluir al usuario actual)
   useEffect(() => {

@@ -250,6 +250,48 @@ export default function Spectator() {
         });
     };
 
+    const resetGalaAfterShow = async () => {
+        const [usersSnapshot, nomineesSnapshot] = await Promise.all([
+            getDocs(collection(db, "users")),
+            getDocs(collection(db, "nominees")),
+        ]);
+
+        const batch = writeBatch(db);
+
+        usersSnapshot.forEach((userDoc) => {
+            batch.delete(doc(db, "users", userDoc.id));
+        });
+
+        nomineesSnapshot.forEach((nomineeDoc) => {
+            batch.delete(doc(db, "nominees", nomineeDoc.id));
+        });
+
+        batch.update(doc(db, "galaState", "state"), {
+            stage: null,
+            galaStarted: false,
+            sessionId: null,
+            questionStatus: null,
+            currentQuestion: null,
+            currentQuestionNumber: 1,
+            totalQuestions: TOTAL_QUESTIONS,
+            currentQuestionChico: null,
+            currentQuestionChica: null,
+            questionExpiresAt: null,
+            votingExpiresAt: null,
+            resultsByGender: {},
+            resultsClosedAt: null,
+            votingEndedByAllVotes: false,
+            showPresenter: false,
+            revealModeActive: false,
+            revealQuestionNumber: 1,
+            revealFinishedAt: null,
+            roundStartVotes: {},
+            lastActionAt: serverTimestamp(),
+        });
+
+        await batch.commit();
+    };
+
     const connectedUsersForDisplay = useMemo(() => {
         const nowMs = currentTime.getTime();
 
@@ -432,7 +474,13 @@ export default function Spectator() {
                 if (prev === null) return prev;
                 if (prev <= 1) {
                     clearInterval(interval);
-                    window.location.href = "/spectator";
+                    resetGalaAfterShow()
+                        .catch((error) => {
+                            console.warn("Error reseteando gala tras finalizar el show:", error);
+                        })
+                        .finally(() => {
+                            window.location.href = "/spectator";
+                        });
                     return 0;
                 }
                 return prev - 1;

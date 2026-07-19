@@ -42,6 +42,7 @@ export default function Voter() {
   const [hasVoted, setHasVoted] = useState(false);
   const [hasVotedChico, setHasVotedChico] = useState(false);
   const [hasVotedChica, setHasVotedChica] = useState(false);
+  const [closeCountdown, setCloseCountdown] = useState(null);
   const [farewellVariant, setFarewellVariant] = useState(null);
   const navigate = useNavigate();
   const questionChicoText = galaState?.currentQuestionChico?.text || "";

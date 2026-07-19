@@ -110,6 +110,7 @@ export default function Admin() {
       questionExpiresAt: Date.now() + 10000,
       votingExpiresAt: null,
       resultsByGender: {},
+      revealFinishedAt: null,
       showPresenter: false,
       lastActionAt: serverTimestamp(),
     });

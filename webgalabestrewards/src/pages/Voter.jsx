@@ -612,7 +612,19 @@ export default function Voter() {
   }, [userId, userSessionId, galaState, questionDisplayText, hasVoted]);
 
   useEffect(() => {
-    const showFinished = !!galaState?.revealFinishedAt;
+    const isSessionReadyForUser = !!(
+      userId &&
+      galaState?.galaStarted === true &&
+      galaState?.sessionId &&
+      userSessionId === galaState.sessionId
+    );
+
+    const showFinished = !!(
+      isSessionReadyForUser &&
+      galaState?.stage === "results" &&
+      galaState?.revealFinishedAt
+    );
+
     if (!showFinished) {
       setCloseCountdown(null);
       setFarewellVariant(null);
@@ -627,10 +639,7 @@ export default function Voter() {
         if (prev === null) return prev;
         if (prev <= 1) {
           clearInterval(interval);
-          window.close();
-          setTimeout(() => {
-            window.location.href = "/";
-          }, 150);
+          window.location.href = "/";
           return 0;
         }
 
@@ -639,7 +648,7 @@ export default function Voter() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [galaState?.revealFinishedAt]);
+  }, [userId, userSessionId, galaState?.galaStarted, galaState?.sessionId, galaState?.stage, galaState?.revealFinishedAt]);
 
   // Función para votar
   const vote = async (candidate) => {
@@ -737,6 +746,12 @@ export default function Voter() {
     galaState?.galaStarted === true &&
     galaState?.sessionId &&
     userSessionId === galaState.sessionId
+  );
+  const shouldShowFarewellOverlay = !!(
+    alreadyJoined &&
+    isSessionReadyForUser &&
+    galaState?.stage === "results" &&
+    galaState?.revealFinishedAt
   );
   const revealQuestionNumber = galaState?.revealQuestionNumber || 1;
   const revealQuestionKey = `q${revealQuestionNumber}`;
@@ -1036,7 +1051,7 @@ export default function Voter() {
         </div>
       )}
 
-      {galaState?.revealFinishedAt && (
+      {shouldShowFarewellOverlay && (
         <div
           style={{
             position: "fixed",

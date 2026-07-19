@@ -207,6 +207,7 @@ export default function Spectator() {
                 resultsByGender: {},
                 revealModeActive: false,
                 revealQuestionNumber: 1,
+                revealFinishedAt: null,
                 showPresenter: false,
                 lastActionAt: serverTimestamp(),
             });
@@ -256,6 +257,11 @@ export default function Spectator() {
         const lastSeenDate = user.lastSeen.toDate ? user.lastSeen.toDate() : new Date(user.lastSeen);
         return currentTime.getTime() - lastSeenDate.getTime() <= 15000;
     };
+
+    const connectedUsersForDisplay = useMemo(
+        () => users.filter((user) => isUserConnected(user)),
+        [users, currentTime]
+    );
 
     const usersById = useMemo(
         () => Object.fromEntries(users.map((user) => [user.id, user])),
@@ -414,7 +420,7 @@ export default function Spectator() {
 
     useEffect(() => {
         const showFinished = !!galaState?.revealFinishedAt;
-        if (!showFinished) {
+        if (!isShowScreen || !showFinished) {
             setCloseCountdown(null);
             setFarewellVariant(null);
             return;
@@ -427,10 +433,7 @@ export default function Spectator() {
                 if (prev === null) return prev;
                 if (prev <= 1) {
                     clearInterval(interval);
-                    window.close();
-                    setTimeout(() => {
-                        window.location.href = "/";
-                    }, 150);
+                    window.location.href = "/spectator";
                     return 0;
                 }
                 return prev - 1;
@@ -1163,7 +1166,7 @@ export default function Spectator() {
         boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
     }}
 >
-    {users.map((user) => {
+    {connectedUsersForDisplay.map((user) => {
         const isConnected = isUserConnected(user);
         return (
             <div
@@ -1224,6 +1227,12 @@ export default function Spectator() {
             </div>
         );
     })}
+
+    {connectedUsersForDisplay.length === 0 && (
+        <p style={{ margin: 0, color: "#94a3b8", fontWeight: 700 }}>
+            No hay usuarios conectados ahora mismo.
+        </p>
+    )}
 </div>
                     {galaState?.stage !== "results" && (
                         <>

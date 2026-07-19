@@ -247,6 +247,7 @@ export default function Join() {
 
           .join-panel {
             animation: joinPanelIn 0.7s ease, joinGlow 5s ease-in-out infinite;
+            box-sizing: border-box;
           }
 
           .join-title {
@@ -270,7 +271,11 @@ export default function Join() {
           }
 
           .join-input {
+            display: block;
             width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
             padding: 14px 16px;
             border-radius: 16px;
             border: 1px solid rgba(255,255,255,0.18);
@@ -295,13 +300,18 @@ export default function Join() {
           }
 
           .join-upload {
+            display: block;
             width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
             padding: 12px;
             border-radius: 16px;
             border: 1px dashed rgba(255,255,255,0.34);
             background: rgba(9, 14, 30, 0.24);
             color: white;
             backdrop-filter: blur(8px);
+            overflow: hidden;
           }
 
           .join-upload::-webkit-file-upload-button {
@@ -385,6 +395,13 @@ export default function Join() {
             .join-gender-button {
               padding: 12px 10px !important;
               font-size: 14px !important;
+            }
+
+            .join-upload::-webkit-file-upload-button {
+              display: block;
+              width: 100%;
+              margin: 0 0 8px 0;
+              padding: 10px 12px;
             }
           }
         `}
@@ -481,7 +498,6 @@ export default function Join() {
 
         {error && (
           <div
-            className="join-gender-row"
             style={{
               background: "rgba(239,68,68,0.28)",
               padding: "12px 14px",

@@ -393,6 +393,8 @@ export default function Admin() {
   const selectedQuestionTrace =
     voteTraceByQuestion.find((group) => group.questionNumber === selectedTraceQuestionNumber) || null;
 
+  const showFinished = !!galaState?.revealFinishedAt;
+  const visibleUsers = showFinished ? [] : users;
   const currentScreenLabel = (user) => user.currentScreen || (user.connected ? "En la gala" : "Desconectado");
 
   if (!galaState) return <p>Cargando...</p>;
@@ -560,14 +562,18 @@ export default function Admin() {
           <div className="admin-section">
             <h2>Monitoreo de usuarios</h2>
             <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
-              <span style={{ color: "#94a3b8" }}>Totales: {users.length}</span>
-              <span style={{ color: "#94a3b8" }}>Conectados: {users.filter((user) => user.connected).length}</span>
+              <span style={{ color: "#94a3b8" }}>Totales: {visibleUsers.length}</span>
+              <span style={{ color: "#94a3b8" }}>Conectados: {visibleUsers.filter((user) => user.connected).length}</span>
             </div>
           </div>
 
           <div className="admin-section" style={{ maxHeight: "66vh", overflowY: "auto" }}>
-            {users.length > 0 ? (
-              users.map((user) => (
+            {showFinished ? (
+              <div style={{ padding: "18px", borderRadius: "18px", background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.35)", color: "#dcfce7", fontWeight: 700, lineHeight: 1.5 }}>
+                El show ya ha terminado. Los usuarios se han cerrado y esta lista se oculta para reflejar el final de la gala.
+              </div>
+            ) : visibleUsers.length > 0 ? (
+              visibleUsers.map((user) => (
                 <div key={user.id} className="user-card">
                   <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start", flexWrap: "wrap" }}>
                     <div>

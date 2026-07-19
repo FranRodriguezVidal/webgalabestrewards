@@ -214,8 +214,7 @@ export default function Join() {
         padding: "20px",
         textAlign: "center",
         position: "relative",
-        overflowX: "hidden",
-        overflowY: "auto",
+        overflow: "hidden",
         minHeight: "100vh",
         background: "linear-gradient(135deg, #3f1dcb, #1a73e8, #ffffff, #ff66cc)",
         display: "flex",
@@ -226,8 +225,7 @@ export default function Join() {
       <style>
         {`
           html, body {
-            overflow-x: hidden;
-            overflow-y: auto;
+            overflow: hidden;
             height: 100%;
           }
 
@@ -253,7 +251,7 @@ export default function Join() {
           }
 
           .join-title {
-            font-size: 28px;
+            font-size: 26px;
           }
 
           .join-subtitle {
@@ -278,13 +276,13 @@ export default function Join() {
             max-width: 100%;
             min-width: 0;
             box-sizing: border-box;
-            padding: 14px 16px;
+            padding: 12px 14px;
             border-radius: 16px;
             border: 1px solid rgba(255,255,255,0.18);
             outline: none;
             background: rgba(255,255,255,0.88);
             color: #14213d;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
             box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 10px 24px rgba(15,23,42,0.14);
             transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
@@ -307,7 +305,7 @@ export default function Join() {
             max-width: 100%;
             min-width: 0;
             box-sizing: border-box;
-            padding: 12px;
+            padding: 10px;
             border-radius: 16px;
             border: 1px dashed rgba(255,255,255,0.34);
             background: rgba(9, 14, 30, 0.24);
@@ -318,7 +316,7 @@ export default function Join() {
 
           .join-upload::-webkit-file-upload-button {
             margin-right: 12px;
-            padding: 10px 14px;
+            padding: 8px 12px;
             border: none;
             border-radius: 12px;
             background: linear-gradient(135deg, #facc15, #fb7185);
@@ -328,15 +326,10 @@ export default function Join() {
           }
 
           @media (max-width: 768px) {
-            html, body {
-              overflow-y: auto !important;
-            }
-
             .join-shell {
-              padding: 16px !important;
-              align-items: flex-start !important;
-              overflow-y: auto !important;
-              -webkit-overflow-scrolling: touch;
+              padding: 12px !important;
+              align-items: center !important;
+              overflow: hidden !important;
             }
 
             .join-exit-button {
@@ -348,69 +341,76 @@ export default function Join() {
             }
 
             .join-panel {
-              max-width: 420px !important;
-              border-radius: 22px !important;
-              padding: 22px 16px !important;
-              margin-top: 54px;
-              margin-bottom: 18px;
+              max-width: 380px !important;
+              border-radius: 20px !important;
+              padding: 18px 14px !important;
+              margin-top: 48px;
+              margin-bottom: 0;
             }
 
             .join-title {
-              font-size: 24px !important;
+              font-size: 20px !important;
+              margin-bottom: 6px !important;
             }
 
             .join-subtitle {
-              font-size: 13px !important;
-              margin-bottom: 16px !important;
+              font-size: 11px !important;
+              line-height: 1.35 !important;
+              margin-bottom: 10px !important;
+            }
+
+            .join-gender-row {
+              gap: 8px;
+              margin-bottom: 6px;
+              margin-top: 2px;
             }
 
             .join-gender-button {
               min-width: 0;
-              padding: 12px 12px !important;
-              font-size: 15px !important;
+              padding: 10px 8px !important;
+              font-size: 14px !important;
             }
 
             .join-input {
-              padding: 12px 14px;
-              border-radius: 14px;
-              font-size: 15px;
+              padding: 10px 12px;
+              border-radius: 12px;
+              font-size: 14px;
             }
 
             .join-upload {
-              padding: 10px;
-              font-size: 13px;
+              padding: 8px;
+              font-size: 12px;
+              border-radius: 12px;
             }
           }
 
           @media (max-width: 430px) {
             .join-shell {
-              padding: 14px !important;
+              padding: 10px !important;
             }
 
             .join-panel {
-              max-width: 100% !important;
-              padding: 20px 14px !important;
-              margin-bottom: 24px;
+              max-width: 360px !important;
+              padding: 16px 12px !important;
             }
 
             .join-title {
-              font-size: 22px !important;
+              font-size: 18px !important;
             }
 
-            .join-gender-row {
-              gap: 8px;
+            .join-subtitle {
+              display: none;
             }
 
             .join-gender-button {
-              padding: 12px 10px !important;
-              font-size: 14px !important;
+              padding: 9px 8px !important;
+              font-size: 13px !important;
             }
 
             .join-upload::-webkit-file-upload-button {
-              display: block;
-              width: 100%;
-              margin: 0 0 8px 0;
-              padding: 10px 12px;
+              margin: 0 8px 0 0;
+              width: auto;
+              padding: 8px 10px;
             }
           }
         `}
@@ -441,10 +441,10 @@ export default function Join() {
         className="join-panel"
         style={{
           width: "100%",
-          maxWidth: "420px",
+          maxWidth: "390px",
           background: "linear-gradient(180deg, rgba(10,18,38,0.86), rgba(20,31,58,0.78))",
           borderRadius: "28px",
-          padding: "28px 24px",
+          padding: "22px 18px",
           border: "1px solid rgba(255,255,255,0.18)",
           boxShadow: "0 20px 48px rgba(3,7,18,0.34)",
           backdropFilter: "blur(18px)",
@@ -457,8 +457,8 @@ export default function Join() {
             position: "absolute",
             top: "-20%",
             right: "-10%",
-            width: "180px",
-            height: "180px",
+            width: "150px",
+            height: "150px",
             borderRadius: "50%",
             background: "radial-gradient(circle, rgba(244,114,182,0.35), transparent 68%)",
             pointerEvents: "none",
@@ -469,8 +469,8 @@ export default function Join() {
             position: "absolute",
             bottom: "-18%",
             left: "-8%",
-            width: "170px",
-            height: "170px",
+            width: "145px",
+            height: "145px",
             borderRadius: "50%",
             background: "radial-gradient(circle, rgba(56,189,248,0.30), transparent 70%)",
             pointerEvents: "none",
@@ -485,7 +485,7 @@ export default function Join() {
             textShadow: "0 0 18px rgba(96,165,250,0.24)",
             fontSize: "28px",
             lineHeight: 1.1,
-            marginBottom: "8px",
+            marginBottom: "6px",
             letterSpacing: "0.01em",
           }}
         >
@@ -495,7 +495,7 @@ export default function Join() {
         <p
           className="join-subtitle"
           style={{
-            margin: "0 0 18px",
+            margin: "0 0 12px",
             color: "#cbd5e1",
             fontSize: "14px",
             lineHeight: 1.5,
@@ -548,8 +548,8 @@ export default function Join() {
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "14px",
-            marginTop: "10px",
+            gap: "10px",
+            marginTop: "6px",
           }}
         >
           {/* Nombre */}

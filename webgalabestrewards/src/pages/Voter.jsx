@@ -19,21 +19,22 @@ import { onAuthStateChanged } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { getQuestionsForGender } from "../questions";
 
+const FAREWELL_ANIMATIONS = [
+  { key: "spin-disco", emoji: "🪩", title: "Despedida disco", text: "Última vuelta y a casa", motion: "byeSpin", accent: "#facc15", bg: "rgba(250,204,21,0.14)" },
+  { key: "pollito", emoji: "🐥", title: "Modo pollito", text: "Pío pío, cierre en camino", motion: "byeWiggle", accent: "#fde68a", bg: "rgba(253,230,138,0.14)" },
+  { key: "confeti", emoji: "🎉", title: "Confeti campeón", text: "¡Gracias por votar!", motion: "byeBounce", accent: "#f472b6", bg: "rgba(244,114,182,0.14)" },
+  { key: "torbellino", emoji: "🌀", title: "Torbellino final", text: "La gala hace remolino", motion: "byeFloat", accent: "#38bdf8", bg: "rgba(56,189,248,0.14)" },
+  { key: "baile", emoji: "💃", title: "Baile del adiós", text: "Un pasito más y se cierra", motion: "byeDance", accent: "#fb7185", bg: "rgba(251,113,133,0.14)" },
+  { key: "cohete", emoji: "🚀", title: "Cohete de salida", text: "Despegue al menú", motion: "byeZoom", accent: "#22d3ee", bg: "rgba(34,211,238,0.14)" },
+  { key: "shake", emoji: "😵‍💫", title: "Shake elegante", text: "Temblor final controlado", motion: "byeShake", accent: "#c084fc", bg: "rgba(192,132,252,0.14)" },
+  { key: "sombrero", emoji: "🎩", title: "Sombrero mágico", text: "Puff, desaparece la pantalla", motion: "byeTilt", accent: "#a78bfa", bg: "rgba(167,139,250,0.14)" },
+  { key: "estrella", emoji: "🌟", title: "Estrella fugaz", text: "Brilla y se despide", motion: "byePop", accent: "#fbbf24", bg: "rgba(251,191,36,0.14)" },
+  { key: "patin", emoji: "🛼", title: "Salida con patines", text: "Desliza directo al cierre", motion: "byeSlide", accent: "#60a5fa", bg: "rgba(96,165,250,0.14)" },
+];
+
 
 export default function Voter() {
   const TOTAL_QUESTIONS = getQuestionsForGender("all").length || 5;
-  const farewellAnimations = [
-    { key: "spin-disco", emoji: "🪩", title: "Despedida disco", text: "Última vuelta y a casa", motion: "byeSpin", accent: "#facc15", bg: "rgba(250,204,21,0.14)" },
-    { key: "pollito", emoji: "🐥", title: "Modo pollito", text: "Pío pío, cierre en camino", motion: "byeWiggle", accent: "#fde68a", bg: "rgba(253,230,138,0.14)" },
-    { key: "confeti", emoji: "🎉", title: "Confeti campeón", text: "¡Gracias por votar!", motion: "byeBounce", accent: "#f472b6", bg: "rgba(244,114,182,0.14)" },
-    { key: "torbellino", emoji: "🌀", title: "Torbellino final", text: "La gala hace remolino", motion: "byeFloat", accent: "#38bdf8", bg: "rgba(56,189,248,0.14)" },
-    { key: "baile", emoji: "💃", title: "Baile del adiós", text: "Un pasito más y se cierra", motion: "byeDance", accent: "#fb7185", bg: "rgba(251,113,133,0.14)" },
-    { key: "cohete", emoji: "🚀", title: "Cohete de salida", text: "Despegue al menú", motion: "byeZoom", accent: "#22d3ee", bg: "rgba(34,211,238,0.14)" },
-    { key: "shake", emoji: "😵‍💫", title: "Shake elegante", text: "Temblor final controlado", motion: "byeShake", accent: "#c084fc", bg: "rgba(192,132,252,0.14)" },
-    { key: "sombrero", emoji: "🎩", title: "Sombrero mágico", text: "Puff, desaparece la pantalla", motion: "byeTilt", accent: "#a78bfa", bg: "rgba(167,139,250,0.14)" },
-    { key: "estrella", emoji: "🌟", title: "Estrella fugaz", text: "Brilla y se despide", motion: "byePop", accent: "#fbbf24", bg: "rgba(251,191,36,0.14)" },
-    { key: "patin", emoji: "🛼", title: "Salida con patines", text: "Desliza directo al cierre", motion: "byeSlide", accent: "#60a5fa", bg: "rgba(96,165,250,0.14)" },
-  ];
   const [userId, setUserId] = useState(null);
   const [userSessionId, setUserSessionId] = useState(null);
   const [removedByAdmin, setRemovedByAdmin] = useState(false);
@@ -618,7 +619,7 @@ export default function Voter() {
       return;
     }
 
-    setFarewellVariant((current) => current || farewellAnimations[Math.floor(Math.random() * farewellAnimations.length)]);
+    setFarewellVariant((current) => current || FAREWELL_ANIMATIONS[Math.floor(Math.random() * FAREWELL_ANIMATIONS.length)]);
     setCloseCountdown(10);
 
     const interval = setInterval(() => {

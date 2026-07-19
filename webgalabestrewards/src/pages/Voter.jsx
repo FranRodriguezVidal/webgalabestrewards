@@ -22,6 +22,18 @@ import { getQuestionsForGender } from "../questions";
 
 export default function Voter() {
   const TOTAL_QUESTIONS = getQuestionsForGender("all").length || 5;
+  const farewellAnimations = [
+    { key: "spin-disco", emoji: "🪩", title: "Despedida disco", text: "Última vuelta y a casa", motion: "byeSpin", accent: "#facc15", bg: "rgba(250,204,21,0.14)" },
+    { key: "pollito", emoji: "🐥", title: "Modo pollito", text: "Pío pío, cierre en camino", motion: "byeWiggle", accent: "#fde68a", bg: "rgba(253,230,138,0.14)" },
+    { key: "confeti", emoji: "🎉", title: "Confeti campeón", text: "¡Gracias por votar!", motion: "byeBounce", accent: "#f472b6", bg: "rgba(244,114,182,0.14)" },
+    { key: "torbellino", emoji: "🌀", title: "Torbellino final", text: "La gala hace remolino", motion: "byeFloat", accent: "#38bdf8", bg: "rgba(56,189,248,0.14)" },
+    { key: "baile", emoji: "💃", title: "Baile del adiós", text: "Un pasito más y se cierra", motion: "byeDance", accent: "#fb7185", bg: "rgba(251,113,133,0.14)" },
+    { key: "cohete", emoji: "🚀", title: "Cohete de salida", text: "Despegue al menú", motion: "byeZoom", accent: "#22d3ee", bg: "rgba(34,211,238,0.14)" },
+    { key: "shake", emoji: "😵‍💫", title: "Shake elegante", text: "Temblor final controlado", motion: "byeShake", accent: "#c084fc", bg: "rgba(192,132,252,0.14)" },
+    { key: "sombrero", emoji: "🎩", title: "Sombrero mágico", text: "Puff, desaparece la pantalla", motion: "byeTilt", accent: "#a78bfa", bg: "rgba(167,139,250,0.14)" },
+    { key: "estrella", emoji: "🌟", title: "Estrella fugaz", text: "Brilla y se despide", motion: "byePop", accent: "#fbbf24", bg: "rgba(251,191,36,0.14)" },
+    { key: "patin", emoji: "🛼", title: "Salida con patines", text: "Desliza directo al cierre", motion: "byeSlide", accent: "#60a5fa", bg: "rgba(96,165,250,0.14)" },
+  ];
   const [userId, setUserId] = useState(null);
   const [userSessionId, setUserSessionId] = useState(null);
   const [removedByAdmin, setRemovedByAdmin] = useState(false);
@@ -30,6 +42,7 @@ export default function Voter() {
   const [hasVoted, setHasVoted] = useState(false);
   const [hasVotedChico, setHasVotedChico] = useState(false);
   const [hasVotedChica, setHasVotedChica] = useState(false);
+  const [farewellVariant, setFarewellVariant] = useState(null);
   const navigate = useNavigate();
   const questionChicoText = galaState?.currentQuestionChico?.text || "";
   const questionChicaText = galaState?.currentQuestionChica?.text || "";
@@ -596,6 +609,36 @@ export default function Voter() {
     });
   }, [userId, userSessionId, galaState, questionDisplayText, hasVoted]);
 
+  useEffect(() => {
+    const showFinished = !!galaState?.revealFinishedAt;
+    if (!showFinished) {
+      setCloseCountdown(null);
+      setFarewellVariant(null);
+      return;
+    }
+
+    setFarewellVariant((current) => current || farewellAnimations[Math.floor(Math.random() * farewellAnimations.length)]);
+    setCloseCountdown(10);
+
+    const interval = setInterval(() => {
+      setCloseCountdown((prev) => {
+        if (prev === null) return prev;
+        if (prev <= 1) {
+          clearInterval(interval);
+          window.close();
+          setTimeout(() => {
+            window.location.href = "/";
+          }, 150);
+          return 0;
+        }
+
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [galaState?.revealFinishedAt]);
+
   // Función para votar
   const vote = async (candidate) => {
     const isSessionReadyForUser = !!(
@@ -902,17 +945,24 @@ export default function Voter() {
             style={{
               width: "100%",
               maxWidth: "min(980px, 96vw)",
+              maxHeight: "min(58vh, 620px)",
+              overflowY: "auto",
+              overflowX: "hidden",
+              WebkitOverflowScrolling: "touch",
               display: "flex",
               flexDirection: "column",
               gap: "10px",
               alignItems: "stretch",
               paddingBottom: "8px",
+              paddingRight: "6px",
             }}
           >
             {connectedCandidates.map((candidate) => {
               const gender = (candidate.gender || "").toLowerCase();
               const alreadyVotedThisGender = (gender === "female" || gender === "chica") ? hasVotedChica : hasVotedChico;
               const genderLabel = (gender === "female" || gender === "chica") ? "CHICA" : "CHICO";
+              const genderAccent = (gender === "female" || gender === "chica") ? "#f472b6" : "#38bdf8";
+              const genderTint = (gender === "female" || gender === "chica") ? "rgba(244,114,182,0.16)" : "rgba(56,189,248,0.16)";
               const photoName = candidate.profilePhoto || candidate.photo;
               const photoSrc = photoName
                 ? `https://gala-backend.franrvguijo.workers.dev/image/${photoName}`
@@ -924,8 +974,8 @@ export default function Voter() {
                   key={candidate.id}
                   style={{
                     minWidth: "0",
-                    background: "rgba(0,0,0,0.28)",
-                    border: "1px solid rgba(255,255,255,0.22)",
+                    background: `linear-gradient(135deg, ${genderTint}, rgba(0,0,0,0.24))`,
+                    border: `2px solid ${genderAccent}`,
                     borderRadius: "14px",
                     padding: "10px",
                     backdropFilter: "blur(8px)",
@@ -951,7 +1001,7 @@ export default function Voter() {
                     <p style={{ margin: "0 0 2px", color: "white", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                       {candidate.name || "Anónimo"} {candidate.lastname || ""}
                     </p>
-                    <p style={{ margin: "0", color: "#facc15", fontSize: "12px", fontWeight: 800 }}>
+                    <p style={{ margin: "0", color: genderAccent, fontSize: "12px", fontWeight: 800 }}>
                       Género para voto: {genderLabel}
                     </p>
                     <p style={{ margin: "2px 0 0", color: "#d1d5db", fontSize: "12px" }}>
@@ -966,8 +1016,9 @@ export default function Voter() {
                       width: "min(40vw, 160px)",
                       minWidth: "112px",
                       padding: "10px 10px",
-                      background: alreadyVotedThisGender ? "#777" : "gold",
-                      border: "none",
+                      background: alreadyVotedThisGender ? "#777" : genderAccent,
+                      color: "white",
+                      border: `1px solid ${genderAccent}`,
                       borderRadius: "10px",
                       cursor: alreadyVotedThisGender ? "not-allowed" : "pointer",
                       fontWeight: 700,
@@ -979,6 +1030,48 @@ export default function Voter() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {galaState?.revealFinishedAt && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 999,
+            background: "rgba(3, 7, 18, 0.82)",
+            backdropFilter: "blur(12px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{
+              width: "min(100%, 600px)",
+              padding: "24px 18px",
+              borderRadius: "28px",
+              border: `2px solid ${farewellVariant?.accent || "#fde68a"}`,
+              background: farewellVariant?.bg || "rgba(255,255,255,0.08)",
+              boxShadow: `0 0 36px ${farewellVariant?.bg || "rgba(255,255,255,0.16)"}`,
+              color: "white",
+              textAlign: "center",
+            }}
+          >
+            <div style={{ fontSize: "clamp(54px, 10vw, 88px)", lineHeight: 1, animation: `${farewellVariant?.motion || "byeBounce"} 1.1s infinite ease-in-out` }}>
+              {farewellVariant?.emoji || "🎬"}
+            </div>
+            <h2 style={{ margin: "12px 0 0", fontSize: "clamp(28px, 5.8vw, 54px)", color: farewellVariant?.accent || "#fde68a", fontWeight: 900 }}>
+              {farewellVariant?.title || "GRACIAS POR PARTICIPAR"}
+            </h2>
+            <p style={{ margin: "10px 0 0", fontSize: "clamp(18px, 3.8vw, 26px)", color: "#e2e8f0", fontWeight: 800 }}>
+              {farewellVariant?.text || "Se cierra el show"}
+            </p>
+            <p style={{ margin: "14px 0 0", fontSize: "clamp(16px, 3.2vw, 22px)", color: "#bfdbfe", fontWeight: 800 }}>
+              Se cierra la pantalla en {closeCountdown ?? 10}s
+            </p>
           </div>
         </div>
       )}

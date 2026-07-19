@@ -259,11 +259,12 @@ export default function Join() {
         style={{
           width: "100%",
           maxWidth: "420px",
-          background: "rgba(255,255,255,0.12)",
+          background: "rgba(255,255,255,0.10)",
           borderRadius: "20px",
           padding: "25px 20px",
-          boxShadow: "0 0 25px rgba(0,0,0,0.3)",
-          backdropFilter: "blur(12px)",
+          border: "1px solid rgba(255,255,255,0.24)",
+          boxShadow: "0 0 28px rgba(0,0,0,0.26)",
+          backdropFilter: "blur(16px)",
         }}
       >
         <h1
@@ -379,11 +380,11 @@ export default function Join() {
                 borderRadius: "12px",
                 border:
                   gender === "male"
-                    ? "2px solid gold"
+                    ? "2px solid rgba(56,189,248,0.95)"
                     : "2px solid rgba(255,255,255,0.3)",
                 background:
                   gender === "male"
-                    ? "rgba(255,215,0,0.25)"
+                    ? "rgba(56,189,248,0.22)"
                     : "rgba(255,255,255,0.15)",
                 color: "white",
                 cursor: "pointer",
@@ -405,11 +406,11 @@ export default function Join() {
                 borderRadius: "12px",
                 border:
                   gender === "female"
-                    ? "2px solid gold"
+                    ? "2px solid rgba(244,114,182,0.95)"
                     : "2px solid rgba(255,255,255,0.3)",
                 background:
                   gender === "female"
-                    ? "rgba(255,215,0,0.25)"
+                    ? "rgba(244,114,182,0.22)"
                     : "rgba(255,255,255,0.15)",
                 color: "white",
                 cursor: "pointer",

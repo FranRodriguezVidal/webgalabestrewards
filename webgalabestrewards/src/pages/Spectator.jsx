@@ -22,6 +22,7 @@ export default function Spectator() {
     const [currentTime, setCurrentTime] = useState(new Date());
     const [localLocation, setLocalLocation] = useState("Cargando ubicación...");
     const [showStartScreen, setShowStartScreen] = useState(false);
+    const [farewellVariant, setFarewellVariant] = useState(null);
     const location = useLocation();
 
     const queryParams = new URLSearchParams(location.search);
@@ -39,6 +40,18 @@ export default function Spectator() {
     const [showBlockIndex, setShowBlockIndex] = useState(-1);
     const [closeCountdown, setCloseCountdown] = useState(null);
     const [manualOpenUrl, setManualOpenUrl] = useState("");
+    const farewellAnimations = [
+        { key: "spin-disco", emoji: "🪩", title: "Despedida disco", text: "Última vuelta del show", motion: "byeSpin", accent: "#facc15", bg: "rgba(250,204,21,0.14)" },
+        { key: "pollito", emoji: "🐥", title: "Pollito escapista", text: "Pío pío, hasta luego", motion: "byeWiggle", accent: "#fde68a", bg: "rgba(253,230,138,0.14)" },
+        { key: "confeti", emoji: "🎉", title: "Confeti campeón", text: "Gracias por estar aquí", motion: "byeBounce", accent: "#f472b6", bg: "rgba(244,114,182,0.14)" },
+        { key: "torbellino", emoji: "🌀", title: "Torbellino final", text: "La gala gira y se va", motion: "byeFloat", accent: "#38bdf8", bg: "rgba(56,189,248,0.14)" },
+        { key: "baile", emoji: "💃", title: "Baile del adiós", text: "Un último paso y fuera", motion: "byeDance", accent: "#fb7185", bg: "rgba(251,113,133,0.14)" },
+        { key: "cohete", emoji: "🚀", title: "Cohete de salida", text: "Despegue al menú", motion: "byeZoom", accent: "#22d3ee", bg: "rgba(34,211,238,0.14)" },
+        { key: "shake", emoji: "😵‍💫", title: "Shake elegante", text: "Temblor final controlado", motion: "byeShake", accent: "#c084fc", bg: "rgba(192,132,252,0.14)" },
+        { key: "sombrero", emoji: "🎩", title: "Sombrero mágico", text: "Puff, desaparece todo", motion: "byeTilt", accent: "#a78bfa", bg: "rgba(167,139,250,0.14)" },
+        { key: "estrella", emoji: "🌟", title: "Estrella fugaz", text: "Brilla y se despide", motion: "byePop", accent: "#fbbf24", bg: "rgba(251,191,36,0.14)" },
+        { key: "patin", emoji: "🛼", title: "Salida con patines", text: "Desliza directo al cierre", motion: "byeSlide", accent: "#60a5fa", bg: "rgba(96,165,250,0.14)" },
+    ];
 
     const prepareNewTab = () => {
         const newTab = window.open("about:blank", "_blank");
@@ -401,11 +414,13 @@ export default function Spectator() {
 
     useEffect(() => {
         const showFinished = !!galaState?.revealFinishedAt;
-        if (!isShowScreen || !showFinished) {
+        if (!showFinished) {
             setCloseCountdown(null);
+            setFarewellVariant(null);
             return;
         }
 
+        setFarewellVariant((current) => current || farewellAnimations[Math.floor(Math.random() * farewellAnimations.length)]);
         setCloseCountdown(10);
         const interval = setInterval(() => {
             setCloseCountdown((prev) => {
@@ -413,6 +428,9 @@ export default function Spectator() {
                 if (prev <= 1) {
                     clearInterval(interval);
                     window.close();
+                    setTimeout(() => {
+                        window.location.href = "/";
+                    }, 150);
                     return 0;
                 }
                 return prev - 1;
@@ -582,6 +600,63 @@ export default function Spectator() {
                         20% { opacity: 0.35; }
                         100% { transform: translateX(220%) skewX(-18deg); opacity: 0; }
                     }
+                    @keyframes byeSpin {
+                        0% { transform: rotate(0deg) scale(1); }
+                        50% { transform: rotate(10deg) scale(1.06); }
+                        100% { transform: rotate(0deg) scale(1); }
+                    }
+                    @keyframes byeWiggle {
+                        0% { transform: translateX(0) rotate(0deg); }
+                        25% { transform: translateX(-8px) rotate(-4deg); }
+                        75% { transform: translateX(8px) rotate(4deg); }
+                        100% { transform: translateX(0) rotate(0deg); }
+                    }
+                    @keyframes byeBounce {
+                        0% { transform: translateY(0) scale(1); }
+                        50% { transform: translateY(-10px) scale(1.08); }
+                        100% { transform: translateY(0) scale(1); }
+                    }
+                    @keyframes byeFloat {
+                        0% { transform: translateY(0) rotate(0deg); }
+                        50% { transform: translateY(-12px) rotate(3deg); }
+                        100% { transform: translateY(0) rotate(0deg); }
+                    }
+                    @keyframes byeDance {
+                        0% { transform: rotate(0deg) translateY(0); }
+                        20% { transform: rotate(-5deg) translateY(-2px); }
+                        40% { transform: rotate(5deg) translateY(-4px); }
+                        60% { transform: rotate(-4deg) translateY(-2px); }
+                        80% { transform: rotate(4deg) translateY(0); }
+                        100% { transform: rotate(0deg) translateY(0); }
+                    }
+                    @keyframes byeZoom {
+                        0% { transform: scale(0.98); }
+                        50% { transform: scale(1.09); }
+                        100% { transform: scale(0.98); }
+                    }
+                    @keyframes byeShake {
+                        0% { transform: translateX(0); }
+                        20% { transform: translateX(-6px); }
+                        40% { transform: translateX(6px); }
+                        60% { transform: translateX(-4px); }
+                        80% { transform: translateX(4px); }
+                        100% { transform: translateX(0); }
+                    }
+                    @keyframes byeTilt {
+                        0% { transform: rotate(0deg); }
+                        50% { transform: rotate(8deg); }
+                        100% { transform: rotate(0deg); }
+                    }
+                    @keyframes byePop {
+                        0% { transform: scale(0.96); }
+                        60% { transform: scale(1.08); }
+                        100% { transform: scale(0.96); }
+                    }
+                    @keyframes byeSlide {
+                        0% { transform: translateX(0); }
+                        50% { transform: translateX(10px); }
+                        100% { transform: translateX(0); }
+                    }
                     `}
                 </style>
 
@@ -594,13 +669,31 @@ export default function Spectator() {
 
                 <div style={{ margin: "10px auto 0", width: "100%", maxWidth: "1200px", minHeight: "clamp(340px, 52vh, 430px)", background: "rgba(15,23,42,0.72)", border: "1px solid rgba(255,255,255,0.16)", borderRadius: "24px", padding: "clamp(10px, 2vw, 16px)", display: "flex", flexDirection: "column" }}>
                     {showFinished && (
-                        <div style={{ marginTop: "50px", animation: "cinematicFade 0.9s ease" }}>
-                            <p style={{ margin: 0, fontSize: "clamp(30px, 6vw, 56px)", fontWeight: 900, color: "#fde68a" }}>
-                                GRACIAS POR PARTICIPAR
-                            </p>
-                            <p style={{ margin: "14px 0 0", fontSize: "clamp(18px, 3.8vw, 26px)", color: "#e2e8f0", fontWeight: 800 }}>
-                                Se cierra la pestaña en {closeCountdown ?? 10}s
-                            </p>
+                        <div style={{ marginTop: "42px", animation: "cinematicFade 0.9s ease" }}>
+                            <div
+                                style={{
+                                    width: "min(100%, 560px)",
+                                    margin: "0 auto",
+                                    padding: "22px 18px",
+                                    borderRadius: "26px",
+                                    border: `2px solid ${farewellVariant?.accent || "#fde68a"}`,
+                                    background: farewellVariant?.bg || "rgba(255,255,255,0.10)",
+                                    boxShadow: `0 0 36px ${farewellVariant?.bg || "rgba(255,255,255,0.16)"}`,
+                                }}
+                            >
+                                <div style={{ fontSize: "clamp(52px, 10vw, 84px)", lineHeight: 1, animation: `${farewellVariant?.motion || "byeBounce"} 1.1s infinite ease-in-out` }}>
+                                    {farewellVariant?.emoji || "🎬"}
+                                </div>
+                                <p style={{ margin: "10px 0 0", fontSize: "clamp(28px, 5.8vw, 54px)", fontWeight: 900, color: farewellVariant?.accent || "#fde68a" }}>
+                                    {farewellVariant?.title || "GRACIAS POR PARTICIPAR"}
+                                </p>
+                                <p style={{ margin: "10px 0 0", fontSize: "clamp(18px, 3.8vw, 26px)", color: "#e2e8f0", fontWeight: 800 }}>
+                                    {farewellVariant?.text || "Se cierra la pestaña"}
+                                </p>
+                                <p style={{ margin: "14px 0 0", fontSize: "clamp(16px, 3.2vw, 22px)", color: "#bfdbfe", fontWeight: 800 }}>
+                                    Se cierra la pantalla en {closeCountdown ?? 10}s
+                                </p>
+                            </div>
                         </div>
                     )}
 

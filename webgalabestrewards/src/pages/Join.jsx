@@ -214,7 +214,8 @@ export default function Join() {
         padding: "20px",
         textAlign: "center",
         position: "relative",
-        overflow: "hidden",
+        overflowX: "hidden",
+        overflowY: "auto",
         minHeight: "100vh",
         background: "linear-gradient(135deg, #3f1dcb, #1a73e8, #ffffff, #ff66cc)",
         display: "flex",
@@ -225,7 +226,8 @@ export default function Join() {
       <style>
         {`
           html, body {
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
             height: 100%;
           }
 
@@ -326,10 +328,15 @@ export default function Join() {
           }
 
           @media (max-width: 768px) {
+            html, body {
+              overflow-y: auto !important;
+            }
+
             .join-shell {
               padding: 16px !important;
               align-items: flex-start !important;
               overflow-y: auto !important;
+              -webkit-overflow-scrolling: touch;
             }
 
             .join-exit-button {
@@ -345,6 +352,7 @@ export default function Join() {
               border-radius: 22px !important;
               padding: 22px 16px !important;
               margin-top: 54px;
+              margin-bottom: 18px;
             }
 
             .join-title {
@@ -382,6 +390,7 @@ export default function Join() {
             .join-panel {
               max-width: 100% !important;
               padding: 20px 14px !important;
+              margin-bottom: 24px;
             }
 
             .join-title {
@@ -433,11 +442,11 @@ export default function Join() {
         style={{
           width: "100%",
           maxWidth: "420px",
-          background: "linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.08))",
+          background: "linear-gradient(180deg, rgba(10,18,38,0.86), rgba(20,31,58,0.78))",
           borderRadius: "28px",
           padding: "28px 24px",
-          border: "1px solid rgba(255,255,255,0.28)",
-          boxShadow: "0 20px 48px rgba(0,0,0,0.26)",
+          border: "1px solid rgba(255,255,255,0.18)",
+          boxShadow: "0 20px 48px rgba(3,7,18,0.34)",
           backdropFilter: "blur(18px)",
           position: "relative",
           overflow: "hidden",
@@ -472,8 +481,8 @@ export default function Join() {
         <h1
           className="join-title"
           style={{
-            color: "white",
-            textShadow: "0 0 14px rgba(255,255,255,0.52)",
+            color: "#f8fafc",
+            textShadow: "0 0 18px rgba(96,165,250,0.24)",
             fontSize: "28px",
             lineHeight: 1.1,
             marginBottom: "8px",
@@ -487,7 +496,7 @@ export default function Join() {
           className="join-subtitle"
           style={{
             margin: "0 0 18px",
-            color: "rgba(255,255,255,0.84)",
+            color: "#cbd5e1",
             fontSize: "14px",
             lineHeight: 1.5,
             fontWeight: 600,
@@ -544,7 +553,7 @@ export default function Join() {
           }}
         >
           {/* Nombre */}
-          <div style={{ textAlign: "left", color: "white", fontSize: "13px", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+          <div style={{ textAlign: "left", color: "#e2e8f0", fontSize: "13px", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
             🧑 Nombre
           </div>
           <input
@@ -556,7 +565,7 @@ export default function Join() {
           />
 
           {/* Apellidos */}
-          <div style={{ textAlign: "left", color: "white", fontSize: "13px", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+          <div style={{ textAlign: "left", color: "#e2e8f0", fontSize: "13px", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
             👤 Apellidos
           </div>
           <input
@@ -568,7 +577,7 @@ export default function Join() {
           />
 
           {/* Selector de género */}
-          <div style={{ textAlign: "left", color: "white", fontSize: "13px", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+          <div style={{ textAlign: "left", color: "#e2e8f0", fontSize: "13px", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
             ⚧ Sexo
           </div>
 
@@ -648,7 +657,7 @@ export default function Join() {
           <div
             style={{
               textAlign: "left",
-              color: "white",
+              color: "#e2e8f0",
               fontSize: "13px",
               fontWeight: 800,
               letterSpacing: "0.08em",
@@ -678,12 +687,12 @@ export default function Join() {
             onChange={(e) => setProfileFile(e.target.files[0])}
             className="join-upload"
           />
-          <div style={{ marginTop: "-8px", textAlign: "left", color: "rgba(255,255,255,0.72)", fontSize: "12px", fontWeight: 600 }}>
+          <div style={{ marginTop: "-8px", textAlign: "left", color: "#cbd5e1", fontSize: "12px", fontWeight: 600 }}>
             {profileFile ? `Seleccionada: ${profileFile.name}` : "Elige una foto clara y centrada para tu perfil."}
           </div>
 
           {/* Foto para ganador */}
-          <div style={{ textAlign: "left", color: "white", fontSize: "13px", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+          <div style={{ textAlign: "left", color: "#e2e8f0", fontSize: "13px", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
             🏆 Foto para Ganador
           </div>
           <input
@@ -692,7 +701,7 @@ export default function Join() {
             onChange={(e) => setWinnerFile(e.target.files[0])}
             className="join-upload"
           />
-          <div style={{ marginTop: "-8px", textAlign: "left", color: "rgba(255,255,255,0.72)", fontSize: "12px", fontWeight: 600 }}>
+          <div style={{ marginTop: "-8px", textAlign: "left", color: "#cbd5e1", fontSize: "12px", fontWeight: 600 }}>
             {winnerFile ? `Seleccionada: ${winnerFile.name}` : "Esta foto se usará si sales ganador o ganadora."}
           </div>
 

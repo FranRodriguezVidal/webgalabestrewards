@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { db } from "../firebase";
-import { getQuestionsForGender } from "../questions";
 import {
     collection,
     onSnapshot,

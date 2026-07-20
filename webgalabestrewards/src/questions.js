@@ -21,6 +21,7 @@ export const QUESTION_BANK = [
   { id: 20, gender: "all", text: "¿Quién es la persona más probable de reírse en el peor momento?" },
   { id: 21, gender: "all", text: "¿Quién es la persona más probable de decir 'voy en camino' sin haber salido de casa?" },
   { id: 22, gender: "all", text: "¿Quién es la persona más probable de enviar un mensaje al chat equivocado?" },
+  { id: 23, gender: "all", text: "¿Quién es la persona más probable que pase más tiempo jugando a la Play?" },
 ];
 
 const normalizeText = (text) =>

@@ -34,7 +34,7 @@ const FAREWELL_ANIMATIONS = [
 
 
 export default function Voter() {
-  const TOTAL_QUESTIONS = getQuestionsForGender("all").length || 5;
+  const TOTAL_QUESTIONS = 22;
   const [userId, setUserId] = useState(null);
   const [userSessionId, setUserSessionId] = useState(null);
   const [removedByAdmin, setRemovedByAdmin] = useState(false);
@@ -494,7 +494,7 @@ export default function Voter() {
       const lowestGroup = rankingGroups[rankingGroups.length - 1] || { nominees: [] };
       const presenterIds = lowestGroup.nominees.map((nominee) => nominee.id);
 
-      const totalQuestions = galaState?.totalQuestions || TOTAL_QUESTIONS;
+      const totalQuestions = TOTAL_QUESTIONS;
       const isLastQuestion = currentQuestionNumber >= totalQuestions;
 
       const resultForQuestion = {

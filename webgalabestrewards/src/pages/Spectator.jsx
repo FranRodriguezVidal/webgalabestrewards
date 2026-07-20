@@ -43,7 +43,7 @@ export default function Spectator() {
     const isShowScreen = queryParams.get("show") === "results";
 
     const isVotingActive = galaState?.stage === "voting";
-    const TOTAL_QUESTIONS = getQuestionsForGender("all").length || 5;
+    const TOTAL_QUESTIONS = 22;
     const QUESTION_DURATION_MS = 10000;
     const ROUND_DURATION_MS = 150000;
     const revealQuestionNumber = galaState?.revealQuestionNumber || 1;
@@ -90,7 +90,7 @@ export default function Spectator() {
 
     const getEstimatedGalaTime = () => {
         const now = currentTime.getTime();
-        const totalQuestions = galaState?.totalQuestions || TOTAL_QUESTIONS;
+        const totalQuestions = TOTAL_QUESTIONS;
         const currentQuestionNumber = galaState?.currentQuestionNumber || 1;
         const completedQuestions = Math.max(0, currentQuestionNumber - 1);
         const remainingQuestionCount = Math.max(0, totalQuestions - currentQuestionNumber);
@@ -118,7 +118,7 @@ export default function Spectator() {
 
     const getRemainingGalaCountdown = () => {
         const now = currentTime.getTime();
-        const totalQuestions = galaState?.totalQuestions || TOTAL_QUESTIONS;
+        const totalQuestions = TOTAL_QUESTIONS;
         const currentQuestionNumber = galaState?.currentQuestionNumber || 1;
         const remainingQuestionCount = Math.max(0, totalQuestions - currentQuestionNumber);
 
@@ -234,7 +234,7 @@ export default function Spectator() {
     };
 
     const goToNextRevealQuestion = async () => {
-        const totalQuestions = galaState?.totalQuestions || TOTAL_QUESTIONS;
+        const totalQuestions = TOTAL_QUESTIONS;
         if (revealQuestionNumber >= totalQuestions) {
             await updateDoc(doc(db, "galaState", "state"), {
                 revealModeActive: false,
@@ -615,7 +615,7 @@ export default function Spectator() {
 
     if (isShowScreen) {
         const activeBlock = showBlockIndex >= 0 ? revealPositionSequence[showBlockIndex] : null;
-        const totalQuestions = galaState?.totalQuestions || TOTAL_QUESTIONS;
+        const totalQuestions = TOTAL_QUESTIONS;
         const showFinished = !!galaState?.revealFinishedAt;
 
         return (

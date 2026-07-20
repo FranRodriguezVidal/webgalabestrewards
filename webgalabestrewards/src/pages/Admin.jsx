@@ -10,7 +10,7 @@ export default function Admin() {
   const [selectedTraceQuestionNumber, setSelectedTraceQuestionNumber] = useState(1);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showQuestions, setShowQuestions] = useState(false);
-  const TOTAL_QUESTIONS = getQuestionsForGender("all").length || 5;
+  const TOTAL_QUESTIONS = 22;
   const QUESTION_DURATION_MS = 10000;
   const ROUND_DURATION_MS = 150000;
 
@@ -249,7 +249,7 @@ export default function Admin() {
   const goToNextVotingFast = async () => {
     if (!galaState) return;
 
-    const totalQuestions = galaState.totalQuestions || TOTAL_QUESTIONS;
+    const totalQuestions = TOTAL_QUESTIONS;
     const currentQuestion = galaState.currentQuestionNumber || 1;
     const isLastQuestion = currentQuestion >= totalQuestions;
 
@@ -287,7 +287,7 @@ export default function Admin() {
 
   const getRemainingToRevealStartMs = () => {
     const now = currentTime.getTime();
-    const totalQuestions = galaState?.totalQuestions || TOTAL_QUESTIONS;
+    const totalQuestions = TOTAL_QUESTIONS;
     const currentQuestionNumber = galaState?.currentQuestionNumber || 1;
     const remainingQuestionCount = Math.max(0, totalQuestions - currentQuestionNumber);
 
@@ -337,7 +337,7 @@ export default function Admin() {
 
   const voteTraceByQuestion = (() => {
     if (!galaState?.currentCategory) return [];
-    const totalQuestions = galaState?.totalQuestions || TOTAL_QUESTIONS;
+    const totalQuestions = TOTAL_QUESTIONS;
     const questionBank = getQuestionsForGender("all");
 
     return Array.from({ length: totalQuestions }, (_, index) => {
